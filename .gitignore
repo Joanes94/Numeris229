@@ -1,0 +1,92 @@
+# ==========================================
+# Numeris229 - Configuration Git Ignore
+# ==========================================
+
+# --- Node.js & Next.js (Frontend) ---
+node_modules/
+frontend/node_modules/
+.next/
+frontend/.next/
+out/
+frontend/out/
+build/
+frontend/build/
+.npm/
+*.tsbuildinfo
+next-env.d.ts
+
+# Logs NPM & Yarn
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Python & FastAPI (Backend) ---
+__pycache__/
+*/__pycache__/
+*/*/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environnements virtuels Python
+venv/
+.venv/
+env/
+ENV/
+backend/venv/
+backend/.venv/
+backend/env/
+
+# --- Bases de données locales & Caches volumineux ---
+# Fichiers de bases SQLite locales (contenant vos tests utilisateurs)
+*.db
+*.sqlite3
+mondroit.db
+backend/mondroit.db
+backend/src/mondroit.db
+
+# Bases vectorielles ChromaDB locales / corrompues
+chroma_db/
+backend/chroma_db/
+backend/src/chroma_db/
+backend/chroma_db_old/
+*.pickle
+*.bin
+
+# --- Fichiers d'environnement & Secrets ---
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+backend/.env
+frontend/.env.local
+
+# --- Fichiers Système & IDE ---
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*.swo
