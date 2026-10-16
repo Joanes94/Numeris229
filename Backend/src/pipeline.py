@@ -80,7 +80,10 @@ class Pipeline:
         except Exception as e:
             print(f"[Erreur Générateur] : {e}")
             doc_secours = documents[0]
-            reponse = f"D'après l'article {doc_secours['meta']['numero_article']} : {doc_secours['texte'][:250]}..."
+            num = doc_secours['meta']['numero_article']
+            titre = doc_secours['meta'].get('titre_article', '').strip()
+            entete = f"Article {num}" + (f" ({titre})" if titre else "")
+            reponse = f"Selon l'{entete} du Code du Numérique :\n\n{doc_secours['texte'].strip()}"
 
         # Si le modèle avoue ne pas trouver la réponse
         if any(p in reponse.lower() for p in PHRASES_NE_SAIT_PAS):
