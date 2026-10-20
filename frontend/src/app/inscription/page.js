@@ -5,11 +5,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Logo from "../../components/Logo";
 import ThemeToggle from "../../components/ThemeToggle";
+import LanguageToggle from "../../components/LanguageToggle";
+import PasswordInput from "../../components/PasswordInput";
+import { useLanguage } from "../../components/LanguageContext";
 import { inscrireUtilisateur, connecterUtilisateur } from "../../lib/api";
 import { ArrowLeft, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 
 export default function PageInscription() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [formulaire, setFormulaire] = useState({
     nom_prenoms: "",
@@ -38,6 +42,11 @@ export default function PageInscription() {
     // Vérification de la correspondance des mots de passe
     if (formulaire.mot_de_passe !== formulaire.mot_de_passe_confirmation) {
       setErreur("Les deux mots de passe ne correspondent pas.");
+      return;
+    }
+
+    if (formulaire.mot_de_passe.length < 6) {
+      setErreur("Le mot de passe doit comporter au moins 6 caractères.");
       return;
     }
 
@@ -74,7 +83,6 @@ export default function PageInscription() {
           router.push("/consultation");
         }, 1200);
       } catch {
-        // En cas de souci sur l'auto-connexion, redirection vers la page de login
         setTimeout(() => {
           router.push("/connexion");
         }, 1500);
@@ -87,16 +95,19 @@ export default function PageInscription() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
-      {/* Barre supérieure */}
+      {/* Barre supérieure : retour, langue et thème */}
       <header className="w-full max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         <Link
           href="/"
           className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Retour à l'accueil</span>
+          <span>{t("nav.retourAccueil")}</span>
         </Link>
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          <LanguageToggle />
+          <ThemeToggle />
+        </div>
       </header>
 
       {/* Contenu principal */}
@@ -109,10 +120,10 @@ export default function PageInscription() {
               <Logo size="md" />
             </div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-              Créer un compte
+              {t("auth.inscriptionTitre")}
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-              Accédez à la consultation du Code du Numérique
+              {t("auth.inscriptionDesc")}
             </p>
           </div>
 
@@ -140,7 +151,7 @@ export default function PageInscription() {
                 htmlFor="nom_prenoms"
                 className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1"
               >
-                Nom et Prénoms
+                {t("auth.nomPrenoms")}
               </label>
               <input
                 id="nom_prenoms"
@@ -149,8 +160,8 @@ export default function PageInscription() {
                 required
                 value={formulaire.nom_prenoms}
                 onChange={handleChange}
-                placeholder="Ex : Bio KOUAGOU"
-                className="w-full px-3.5 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-700 text-sm transition-colors"
+                placeholder={t("auth.nomPlaceholder")}
+                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-700 text-sm transition-colors"
               />
             </div>
 
@@ -161,7 +172,7 @@ export default function PageInscription() {
                   htmlFor="email"
                   className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1"
                 >
-                  Email
+                  {t("auth.email")}
                 </label>
                 <input
                   id="email"
@@ -170,8 +181,8 @@ export default function PageInscription() {
                   required
                   value={formulaire.email}
                   onChange={handleChange}
-                  placeholder="nom@domaine.bj"
-                  className="w-full px-3.5 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-700 text-sm transition-colors"
+                  placeholder={t("auth.emailPlaceholder")}
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-700 text-sm transition-colors"
                 />
               </div>
 
@@ -180,7 +191,7 @@ export default function PageInscription() {
                   htmlFor="telephone"
                   className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1"
                 >
-                  Téléphone
+                  {t("auth.telephone")}
                 </label>
                 <input
                   id="telephone"
@@ -189,8 +200,8 @@ export default function PageInscription() {
                   required
                   value={formulaire.telephone}
                   onChange={handleChange}
-                  placeholder="+229 01 02 03 04"
-                  className="w-full px-3.5 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-700 text-sm transition-colors"
+                  placeholder={t("auth.telPlaceholder")}
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-700 text-sm transition-colors"
                 />
               </div>
             </div>
@@ -202,17 +213,17 @@ export default function PageInscription() {
                   htmlFor="sexe"
                   className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1"
                 >
-                  Sexe
+                  {t("auth.sexe")}
                 </label>
                 <select
                   id="sexe"
                   name="sexe"
                   value={formulaire.sexe}
                   onChange={handleChange}
-                  className="w-full px-3.5 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-700 text-sm transition-colors"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-700 text-sm transition-colors"
                 >
-                  <option value="M">Masculin</option>
-                  <option value="F">Féminin</option>
+                  <option value="M">{t("auth.masculin")}</option>
+                  <option value="F">{t("auth.feminin")}</option>
                 </select>
               </div>
 
@@ -221,7 +232,7 @@ export default function PageInscription() {
                   htmlFor="age"
                   className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1"
                 >
-                  Âge
+                  {t("auth.age")}
                 </label>
                 <input
                   id="age"
@@ -232,8 +243,8 @@ export default function PageInscription() {
                   max="120"
                   value={formulaire.age}
                   onChange={handleChange}
-                  placeholder="Ex : 28"
-                  className="w-full px-3.5 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-700 text-sm transition-colors"
+                  placeholder={t("auth.agePlaceholder")}
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-700 text-sm transition-colors"
                 />
               </div>
 
@@ -242,7 +253,7 @@ export default function PageInscription() {
                   htmlFor="profession"
                   className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1"
                 >
-                  Profession
+                  {t("auth.profession")}
                 </label>
                 <input
                   id="profession"
@@ -251,30 +262,29 @@ export default function PageInscription() {
                   required
                   value={formulaire.profession}
                   onChange={handleChange}
-                  placeholder="Ex : Juriste, Développeur..."
-                  className="w-full px-3.5 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-700 text-sm transition-colors"
+                  placeholder={t("auth.professionPlaceholder")}
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-700 text-sm transition-colors"
                 />
               </div>
             </div>
 
-            {/* Mots de passe (Grille 2 colonnes) */}
+            {/* Mots de passe (Grille 2 colonnes avec œil de visibilité) */}
             <div className="grid sm:grid-cols-2 gap-3.5 pt-1">
               <div>
                 <label
                   htmlFor="mot_de_passe"
                   className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1"
                 >
-                  Mot de passe
+                  {t("auth.motDePasse")}
                 </label>
-                <input
+                <PasswordInput
                   id="mot_de_passe"
                   name="mot_de_passe"
-                  type="password"
                   required
+                  minLength={6}
                   value={formulaire.mot_de_passe}
                   onChange={handleChange}
-                  placeholder="••••••••"
-                  className="w-full px-3.5 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-700 text-sm transition-colors"
+                  autoComplete="new-password"
                 />
               </div>
 
@@ -283,17 +293,16 @@ export default function PageInscription() {
                   htmlFor="mot_de_passe_confirmation"
                   className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1"
                 >
-                  Confirmation
+                  {t("auth.confirmationMdp")}
                 </label>
-                <input
+                <PasswordInput
                   id="mot_de_passe_confirmation"
                   name="mot_de_passe_confirmation"
-                  type="password"
                   required
+                  minLength={6}
                   value={formulaire.mot_de_passe_confirmation}
                   onChange={handleChange}
-                  placeholder="••••••••"
-                  className="w-full px-3.5 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-700 text-sm transition-colors"
+                  autoComplete="new-password"
                 />
               </div>
             </div>
@@ -306,22 +315,22 @@ export default function PageInscription() {
               {chargement ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Création du compte...</span>
+                  <span>{t("auth.creationEnCours")}</span>
                 </>
               ) : (
-                <span>S'inscrire</span>
+                <span>{t("auth.btnInscription")}</span>
               )}
             </button>
           </form>
 
           {/* Lien vers Connexion */}
           <div className="mt-5 pt-5 border-t border-slate-200 dark:border-slate-800 text-center text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-            Vous possédez déjà un compte ?{" "}
+            {t("auth.dejaCompte")}{" "}
             <Link
               href="/connexion"
               className="font-semibold text-emerald-800 dark:text-emerald-400 hover:underline"
             >
-              Se connecter
+              {t("nav.connexion")}
             </Link>
           </div>
 

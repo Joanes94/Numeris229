@@ -5,9 +5,11 @@ class Generator:
         self.modele = modele
         self.url = "http://localhost:11434/api/generate"
 
-    def generer(self, question: str, documents: list) -> str:
+    def generer(self, question: str, documents: list, langue: str = "fr") -> str:
+        is_en = (langue == "en") or ("in english" in question.lower()) or ("english" in question.lower())
+
         if not documents:
-            return "Je ne trouve pas cette information dans le code du numérique."
+            return "This information was not found in the Benin Digital Code." if is_en else "Je ne trouve pas cette information dans le code du numérique."
 
         # Préparation du contexte avec les articles les plus pertinents
         # On limite aux 2 meilleurs articles pour réduire la charge CPU et accélérer la génération
@@ -17,7 +19,18 @@ class Generator:
             for d in docs_contexte
         )
 
-        prompt = f"""Tu es l'assistant juridique Numeris229, expert du Code du Numérique de la République du Bénin (Loi N° 2017-20).
+        if is_en:
+            prompt = f"""You are Numeris229, an expert legal AI assistant on the Digital Code of the Republic of Benin (Law No. 2017-20).
+
+Here are the official legal articles applicable:
+{contexte}
+
+Instruction: Based strictly on the legal articles above, answer the user's question in English clearly, accurately, and comprehensively. Cite the article number(s) explicitly.
+
+Question: {question}
+Legal answer in English:"""
+        else:
+            prompt = f"""Tu es l'assistant juridique Numeris229, expert du Code du Numérique de la République du Bénin (Loi N° 2017-20).
 
 Voici les extraits officiels applicables :
 {contexte}
@@ -57,5 +70,9 @@ Réponse juridique :"""
         titre = doc_principal['meta'].get('titre_article', '').strip()
         texte_integral = doc_principal['texte'].strip()
 
-        entete = f"Article {num}" + (f" ({titre})" if titre else "")
-        return f"Selon l'{entete} du Code du Numérique :\n\n{texte_integral}"
+        if is_en:
+            entete = f"Article {num}" + (f" ({titre})" if titre else "")
+            return f"According to {entete} of the Benin Digital Code:\n\n{texte_integral}"
+        else:
+            entete = f"Article {num}" + (f" ({titre})" if titre else "")
+            return f"Selon l'{entete} du Code du Numérique :\n\n{texte_integral}"

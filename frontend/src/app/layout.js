@@ -1,5 +1,6 @@
 import "./globals.css";
 import { ThemeProvider } from "../components/ThemeProvider";
+import { LanguageProvider } from "../components/LanguageContext";
 
 export const metadata = {
   title: "Numeris229 - Code du Numérique du Bénin",
@@ -14,9 +15,11 @@ export default function RootLayout({ children }) {
         <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>
       <body className="antialiased bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
-        <ThemeProvider>
-          {children}
-        </ThemeProvider>
+        <LanguageProvider>
+          <ThemeProvider>
+            {children}
+          </ThemeProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

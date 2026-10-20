@@ -21,9 +21,13 @@ import {
 } from "lucide-react";
 import Logo from "../../components/Logo";
 import ThemeToggle from "../../components/ThemeToggle";
+import LanguageToggle from "../../components/LanguageToggle";
+import AudioLecteur from "../../components/AudioLecteur";
+import { useLanguage } from "../../components/LanguageContext";
 
 export default function PageExplorer() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [articles, setArticles] = useState([]);
   const [livres, setLivres] = useState([]);
@@ -119,14 +123,15 @@ export default function PageExplorer() {
             <Logo size="sm" />
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <Link
               href="/consultation"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition-colors"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Consulter l'IA</span>
+              <span>{t("hero.btnConsulter")}</span>
             </Link>
+            <LanguageToggle />
             <ThemeToggle />
           </div>
         </div>
@@ -137,14 +142,14 @@ export default function PageExplorer() {
         <div className="max-w-4xl mx-auto text-center space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium">
             <Scale className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
-            <span>Loi N° 2017-20 modifiée • République du Bénin</span>
+            <span>{t("exp.loiTitre")}</span>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Explorateur du Code du Numérique
+            {t("exp.titre")}
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-xl mx-auto leading-relaxed">
-            Parcourez l'intégralité des articles officiels, recherchez par mot-clé, thème ou référence légale.
+            {t("exp.sousTitre")}
           </p>
 
           {/* Formulaire de recherche et filtres */}
@@ -158,7 +163,7 @@ export default function PageExplorer() {
                   setRecherche(e.target.value);
                   setPage(1);
                 }}
-                placeholder="Rechercher un article (ex : 55, données personnelles, escroquerie)..."
+                placeholder={t("exp.recherche")}
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700 transition-colors"
               />
               {recherche && (
@@ -179,7 +184,7 @@ export default function PageExplorer() {
               }}
               className="w-full sm:w-auto px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700 transition-colors shrink-0"
             >
-              <option value="">Tous les Livres</option>
+              <option value="">{t("exp.tousLivres")}</option>
               {livres.map((l, i) => (
                 <option key={i} value={l}>
                   {l}
@@ -189,7 +194,7 @@ export default function PageExplorer() {
           </div>
 
           <div className="text-xs text-slate-500 dark:text-slate-400">
-            {totalResultats} article{totalResultats > 1 ? "s" : ""} trouvé{totalResultats > 1 ? "s" : ""}
+            {totalResultats} {t("exp.article")}{totalResultats > 1 ? "s" : ""}
           </div>
         </div>
       </section>
@@ -199,13 +204,13 @@ export default function PageExplorer() {
         {chargement ? (
           <div className="py-20 flex flex-col items-center justify-center text-slate-400 gap-3">
             <Loader2 className="w-6 h-6 animate-spin text-emerald-700 dark:text-emerald-400" />
-            <span className="text-xs">Chargement des textes légaux...</span>
+            <span className="text-xs">Chargement...</span>
           </div>
         ) : articles.length === 0 ? (
           <div className="py-16 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8">
             <BookOpen className="w-10 h-10 text-slate-400 mx-auto mb-3" />
             <h3 className="text-base font-bold text-slate-900 dark:text-white">
-              Aucun article correspondant
+              {t("exp.aucunResultat")}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
               Essayez un autre mot-clé ou réinitialisez le filtre de sélection du Livre.
@@ -266,10 +271,11 @@ export default function PageExplorer() {
                   </button>
 
                   <div className="flex items-center gap-2">
+                    <AudioLecteur texte={`Article ${art.numero}. ${art.titre || ""}. ${art.texte}`} />
                     <button
                       onClick={() => handleCopierArticle(art)}
                       className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
-                      title="Copier l'article"
+                      title={t("exp.copierArticle")}
                     >
                       <Copy className="w-3.5 h-3.5" />
                     </button>
@@ -279,7 +285,7 @@ export default function PageExplorer() {
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900 text-xs font-semibold transition-colors"
                     >
                       <Sparkles className="w-3 h-3" />
-                      <span>Interroger l'IA</span>
+                      <span>{t("exp.interrogerIa")}</span>
                     </button>
                   </div>
                 </div>
@@ -301,7 +307,7 @@ export default function PageExplorer() {
             </button>
 
             <span className="text-xs font-medium text-slate-600 dark:text-slate-400 px-3">
-              Page {page} sur {totalPages}
+              {t("exp.page")} {page} {t("exp.sur")} {totalPages}
             </span>
 
             <button
@@ -333,10 +339,11 @@ export default function PageExplorer() {
               </div>
 
               <div className="flex items-center gap-2">
+                <AudioLecteur texte={`Article ${articleSelectionne.numero}. ${articleSelectionne.titre || ""}. ${articleSelectionne.texte}`} />
                 <button
                   onClick={() => handleCopierArticle(articleSelectionne)}
                   className="p-2 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                  title="Copier l'article"
+                  title={t("exp.copierArticle")}
                 >
                   {copie ? (
                     <CheckCheck className="w-4 h-4 text-emerald-600" />
@@ -347,6 +354,7 @@ export default function PageExplorer() {
                 <button
                   onClick={() => setArticleSelectionne(null)}
                   className="p-2 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  title={t("exp.fermer")}
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -373,7 +381,7 @@ export default function PageExplorer() {
 
               {articleSelectionne.modifie_par && (
                 <div className="mt-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-300 text-xs">
-                  <span className="font-bold">Modification législative :</span> {articleSelectionne.modifie_par}
+                  <span className="font-bold">{t("exp.modifiePar")}</span> {articleSelectionne.modifie_par}
                 </div>
               )}
             </div>
@@ -381,7 +389,7 @@ export default function PageExplorer() {
             {/* Pied du modal */}
             <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex items-center justify-between">
               <span className="text-[11px] text-slate-500">
-                Loi N° 2017-20 portant Code du Numérique en République du Bénin
+                {t("exp.loiTitre")}
               </span>
 
               <button
@@ -393,7 +401,7 @@ export default function PageExplorer() {
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors shadow-sm"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Poser une question à l'IA</span>
+                <span>{t("exp.poserQuestionIa")}</span>
               </button>
             </div>
 

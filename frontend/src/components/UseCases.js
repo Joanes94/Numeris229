@@ -10,50 +10,49 @@ import {
   ArrowRight,
   HelpCircle,
 } from "lucide-react";
+import { useLanguage } from "./LanguageContext";
 
 export default function UseCases() {
+  const { t } = useLanguage();
+
   const domaines = [
     {
-      livre: "Livre V",
-      titre: "Protection des Données Personnelles",
-      description:
-        "Consentement, droits des personnes fichées, obligations des responsables de traitement, déclarations auprès de l'APDP.",
+      livre: "Livre V / Book V",
+      titre: t("use.d1.titre"),
+      description: t("use.d1.desc"),
       exemples: [
-        "Quelles sont les sanctions en cas de fuite de données ?",
-        "Comment rédiger une politique de confidentialité conforme ?",
+        t("use.d1.q1"),
+        t("use.d1.q2"),
       ],
       icon: UserCheck,
     },
     {
-      livre: "Livre VI",
-      titre: "Cybercriminalité & Sanctions Pénales",
-      description:
-        "Arnaques en ligne, diffamation par voie électronique, piratage de systèmes, harcèlement numérique et compétences judiciaires.",
+      livre: "Livre VI / Book VI",
+      titre: t("use.d2.titre"),
+      description: t("use.d2.desc"),
       exemples: [
-        "Quelle peine pour l'usurpation d'identité sur WhatsApp ?",
-        "Que risque-t-on en cas d'accès illégal à une base de données ?",
+        t("use.d2.q1"),
+        t("use.d2.q2"),
       ],
       icon: ShieldAlert,
     },
     {
-      livre: "Livre III",
-      titre: "Commerce & Signature Électronique",
-      description:
-        "Validité légale des signatures électroniques, contrats numériques, facturation en ligne, responsabilités des plateformes e-commerce.",
+      livre: "Livre III / Book III",
+      titre: t("use.d3.titre"),
+      description: t("use.d3.desc"),
       exemples: [
-        "Une signature électronique a-t-elle la même valeur qu'une signature manuscrite ?",
-        "Quelles sont les mentions obligatoires sur un site e-commerce béninois ?",
+        t("use.d3.q1"),
+        t("use.d3.q2"),
       ],
       icon: ShoppingBag,
     },
     {
-      livre: "Livre IV",
-      titre: "Cybersécurité & Confiance Numérique",
-      description:
-        "Sécurisation des infrastructures d'importance vitale, prestataires d'audit de sécurité qualifiés, rôle de l'ANSSI Bénin.",
+      livre: "Livre IV / Book IV",
+      titre: t("use.d4.titre"),
+      description: t("use.d4.desc"),
       exemples: [
-        "Quelles obligations pèsent sur les opérateurs d'importance vitale ?",
-        "Comment certifier un service de chiffrement au Bénin ?",
+        t("use.d4.q1"),
+        t("use.d4.q2"),
       ],
       icon: Cpu,
     },
@@ -66,13 +65,13 @@ export default function UseCases() {
         {/* Titre de section */}
         <div className="max-w-3xl mx-auto text-center space-y-3">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 text-xs font-semibold uppercase tracking-wider">
-            <span>Domaines Juridiques</span>
+            <span>{t("use.badge")}</span>
           </div>
           <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Les matières couvertes par le Code du Numérique
+            {t("use.titrePrincipal")}
           </h2>
           <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">
-            L'ensemble des dispositions de la Loi n° 2017-20 modifiée sont indexées et analysées pour répondre à vos situations réelles.
+            {t("use.sousTitrePrincipal")}
           </p>
         </div>
 
@@ -106,7 +105,7 @@ export default function UseCases() {
                   <div className="mt-6 space-y-2 border-t border-slate-200/80 dark:border-slate-800 pt-4">
                     <div className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
                       <HelpCircle className="w-3.5 h-3.5" />
-                      <span>Exemples de questions traitées :</span>
+                      <span>{t("use.questionsTraitees")}</span>
                     </div>
                     {domaine.exemples.map((ex, exIndex) => (
                       <div
@@ -128,24 +127,24 @@ export default function UseCases() {
         <div className="mt-16 rounded-3xl bg-slate-900 dark:bg-slate-900 border border-slate-800 p-8 sm:p-12 text-center text-white relative overflow-hidden shadow-xl">
           <div className="relative z-10 max-w-2xl mx-auto space-y-4">
             <h3 className="text-xl sm:text-3xl font-extrabold tracking-tight">
-              Vous avez une question spécifique sur un article ?
+              {t("use.ctaTitre")}
             </h3>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Créez votre compte en 30 secondes ou connectez-vous pour échanger avec l'assistant juridique et obtenir vos réponses certifiées.
+              {t("use.ctaDesc")}
             </p>
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link
-                href="/inscription"
+                href="/consultation"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-semibold text-sm transition-all shadow-md active:scale-95"
               >
-                <span>Accéder à l'assistant</span>
+                <span>{t("use.ctaBtnChat")}</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
                 href="/explorer"
                 className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 font-semibold text-sm transition-all"
               >
-                <span>Parcourir les textes de loi</span>
+                <span>{t("use.ctaBtnLoi")}</span>
               </Link>
             </div>
           </div>

@@ -5,11 +5,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Logo from "../../components/Logo";
 import ThemeToggle from "../../components/ThemeToggle";
+import LanguageToggle from "../../components/LanguageToggle";
+import PasswordInput from "../../components/PasswordInput";
+import { useLanguage } from "../../components/LanguageContext";
 import { connecterUtilisateur } from "../../lib/api";
 import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
 
 export default function PageConnexion() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [email, setEmail] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
   const [chargement, setChargement] = useState(false);
@@ -37,16 +41,19 @@ export default function PageConnexion() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
-      {/* Barre supérieure : retour et thème */}
+      {/* Barre supérieure : retour, langue et thème */}
       <header className="w-full max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         <Link
           href="/"
           className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Retour à l'accueil</span>
+          <span>{t("nav.retourAccueil")}</span>
         </Link>
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          <LanguageToggle />
+          <ThemeToggle />
+        </div>
       </header>
 
       {/* Conteneur principal centré */}
@@ -59,10 +66,10 @@ export default function PageConnexion() {
               <Logo size="md" />
             </div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-              Connexion
+              {t("auth.connexionTitre")}
             </h1>
             <p className="mt-1.5 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-              Accédez à vos consultations du Code du Numérique
+              {t("auth.connexionDesc")}
             </p>
           </div>
 
@@ -81,7 +88,7 @@ export default function PageConnexion() {
                 htmlFor="email"
                 className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5"
               >
-                Adresse email
+                {t("auth.email")}
               </label>
               <input
                 id="email"
@@ -89,7 +96,7 @@ export default function PageConnexion() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="votre.email@exemple.bj"
+                placeholder={t("auth.emailPlaceholder")}
                 className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-700 text-sm transition-colors"
               />
             </div>
@@ -100,23 +107,22 @@ export default function PageConnexion() {
                   htmlFor="motDePasse"
                   className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300"
                 >
-                  Mot de passe
+                  {t("auth.motDePasse")}
                 </label>
                 <Link
                   href="/mot-de-passe-oublie"
                   className="text-xs text-emerald-800 dark:text-emerald-400 hover:underline"
                 >
-                  Mot de passe oublié ?
+                  {t("auth.motDePasseOublie")}
                 </Link>
               </div>
-              <input
+              <PasswordInput
                 id="motDePasse"
-                type="password"
-                required
+                name="motDePasse"
                 value={motDePasse}
                 onChange={(e) => setMotDePasse(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-700 text-sm transition-colors"
+                required
+                autoComplete="current-password"
               />
             </div>
 
@@ -128,22 +134,22 @@ export default function PageConnexion() {
               {chargement ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Vérification...</span>
+                  <span>{t("auth.verification")}</span>
                 </>
               ) : (
-                <span>Se connecter</span>
+                <span>{t("auth.btnConnexion")}</span>
               )}
             </button>
           </form>
 
           {/* Lien vers Inscription */}
           <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800 text-center text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-            Vous n'avez pas encore de compte ?{" "}
+            {t("auth.pasDeCompte")}{" "}
             <Link
               href="/inscription"
               className="font-semibold text-emerald-800 dark:text-emerald-400 hover:underline"
             >
-              Créer un compte
+              {t("auth.creerCompte")}
             </Link>
           </div>
 

@@ -4,11 +4,14 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Logo from "./Logo";
 import ThemeToggle from "./ThemeToggle";
+import LanguageToggle from "./LanguageToggle";
+import { useLanguage } from "./LanguageContext";
 import { obtenirToken } from "../lib/api";
 import { BookOpen, Sparkles, User } from "lucide-react";
 
 export default function Navbar() {
   const [connecte, setConnecte] = useState(false);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const token = obtenirToken();
@@ -28,31 +31,32 @@ export default function Navbar() {
               className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300 hover:text-emerald-800 dark:hover:text-emerald-400 transition-colors"
             >
               <BookOpen className="w-3.5 h-3.5" />
-              <span>Explorateur de lois</span>
+              <span>{t("nav.explorer")}</span>
             </Link>
             <Link
               href="/a-propos"
               className="text-slate-600 dark:text-slate-300 hover:text-emerald-800 dark:hover:text-emerald-400 transition-colors"
             >
-              Cadre légal & RAG
+              {t("nav.aPropos")}
             </Link>
             <a
               href="#thematiques"
               className="text-slate-600 dark:text-slate-300 hover:text-emerald-800 dark:hover:text-emerald-400 transition-colors"
             >
-              Domaines couverts
+              {t("nav.domaines")}
             </a>
             <a
               href="#fonctionnalites"
               className="text-slate-600 dark:text-slate-300 hover:text-emerald-800 dark:hover:text-emerald-400 transition-colors"
             >
-              Fonctionnalités
+              {t("nav.fonctionnalites")}
             </a>
           </nav>
         </div>
 
-        {/* Liens d'accès direct & Toggle thème */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        {/* Liens d'accès direct, Toggle Langue & Toggle thème */}
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          <LanguageToggle />
           <ThemeToggle />
 
           {connecte ? (
@@ -60,7 +64,7 @@ export default function Navbar() {
               <Link
                 href="/profil"
                 className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                title="Mon profil"
+                title={t("nav.profil")}
               >
                 <User className="w-4 h-4" />
               </Link>
@@ -69,7 +73,7 @@ export default function Navbar() {
                 className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors shadow-sm"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Espace consultation</span>
+                <span>{t("nav.consultation")}</span>
               </Link>
             </>
           ) : (
@@ -78,13 +82,13 @@ export default function Navbar() {
                 href="/connexion"
                 className="px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors"
               >
-                Se connecter
+                {t("nav.connexion")}
               </Link>
               <Link
                 href="/inscription"
                 className="px-3.5 py-1.5 rounded-lg bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-medium transition-colors shadow-sm"
               >
-                Créer un compte
+                {t("nav.inscription")}
               </Link>
             </>
           )}

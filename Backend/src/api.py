@@ -39,6 +39,7 @@ pipeline = Pipeline()
 
 class Question(BaseModel):
     texte: str
+    langue: str | None = "fr"
 
 
 class Reponse(BaseModel):
@@ -53,7 +54,7 @@ def health():
 
 @app.post("/question", response_model=Reponse)
 def poser_question(q: Question, utilisateur: Utilisateur = Depends(utilisateur_courant)):
-    return pipeline.repondre(q.texte)
+    return pipeline.repondre(q.texte, langue=q.langue or "fr")
 
 
 @app.post("/conversation")
@@ -71,7 +72,7 @@ def poser_question_dans_conversation(
     utilisateur: Utilisateur = Depends(utilisateur_courant),
     db: Session = Depends(get_db)
 ):
-    resultat = pipeline.repondre(q.texte)
+    resultat = pipeline.repondre(q.texte, langue=q.langue or "fr")
     ajouter_message(db, id_conv, q.texte, resultat["reponse"], resultat["sources"])
     return resultat
 

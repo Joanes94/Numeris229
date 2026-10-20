@@ -1,19 +1,23 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 
 from database import get_db
-from models import Utilisateur
-from schemas import UtilisateurCreation, UtilisateurMiseAJour, UtilisateurConnexion, UtilisateurReponse
+from models import Utilisateur, JetonReinitialisation
+from schemas import (
+    UtilisateurCreation,
+    UtilisateurMiseAJour,
+    UtilisateurConnexion,
+    UtilisateurReponse,
+    MotDePasseOublieDemande,
+    ReinitialisationDemande,
+)
 from securite import hacher_mot_de_passe, verifier_mot_de_passe, creer_token, decoder_token
 
 router = APIRouter()
 security = HTTPBearer()
-
-# Jetons de réinitialisation de mot de passe, en mémoire pour le MVP
-jetons_reinitialisation = {}  # jeton -> (email, date_expiration)
 
 
 def utilisateur_courant(credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)):
@@ -82,28 +86,83 @@ def supprimer_compte(utilisateur: Utilisateur = Depends(utilisateur_courant), db
 
 
 @router.post("/auth/mot-de-passe-oublie")
-def mot_de_passe_oublie(email: str, db: Session = Depends(get_db)):
-    utilisateur = db.query(Utilisateur).filter(Utilisateur.email == email).first()
+def mot_de_passe_oublie(
+    donnees: MotDePasseOublieDemande | None = Body(default=None),
+    email: str | None = None,
+    db: Session = Depends(get_db)
+):
+    email_cible = donnees.email if (donnees and donnees.email) else email
+    if not email_cible:
+        raise HTTPException(status_code=400, detail="Veuillez renseigner votre adresse email.")
+
+    email_propre = str(email_cible).strip().lower()
+    utilisateur = db.query(Utilisateur).filter(Utilisateur.email == email_propre).first()
     if not utilisateur:
-        return {"message": "Si cet email existe, un lien de réinitialisation a été envoyé."}
+        return {"message": "Si cette adresse email est enregistrée, un lien de réinitialisation vous a été envoyé."}
+
+    # Supprimer les anciens jetons non expirés pour cet utilisateur
+    db.query(JetonReinitialisation).filter(JetonReinitialisation.email == email_propre).delete()
 
     jeton = str(uuid.uuid4())
-    jetons_reinitialisation[jeton] = (email, datetime.utcnow() + timedelta(hours=1))
+    expiration = datetime.utcnow() + timedelta(hours=1)
+    db.add(JetonReinitialisation(
+        jeton=jeton,
+        email=email_propre,
+        date_expiration=expiration
+    ))
+    db.commit()
 
-    print(f"[DEV] Lien de réinitialisation : http://localhost:8000/auth/reinitialiser?jeton={jeton}")
+    lien_frontend = f"http://localhost:3000/mot-de-passe-oublie?jeton={jeton}"
 
-    return {"message": "Si cet email existe, un lien de réinitialisation a été envoyé."}
+    print("\n" + "=" * 65)
+    print("[DEV] DEMANDE DE REINITIALISATION DE MOT DE PASSE")
+    print(f"[DEV] Utilisateur : {email_propre}")
+    print(f"[DEV] Jeton       : {jeton}")
+    print(f"[DEV] Lien direct : {lien_frontend}")
+    print("=" * 65 + "\n")
+
+    return {
+        "message": "Si cette adresse email est enregistrée, un lien de réinitialisation vous a été envoyé.",
+        "jeton": jeton,
+        "lien": lien_frontend,
+        "mode_dev": True
+    }
 
 
 @router.post("/auth/reinitialiser")
-def reinitialiser_mot_de_passe(jeton: str, nouveau_mot_de_passe: str, db: Session = Depends(get_db)):
-    info = jetons_reinitialisation.get(jeton)
-    if not info or info[1] < datetime.utcnow():
-        raise HTTPException(status_code=400, detail="Lien invalide ou expiré")
+def reinitialiser_mot_de_passe(
+    donnees: ReinitialisationDemande | None = Body(default=None),
+    jeton: str | None = None,
+    nouveau_mot_de_passe: str | None = None,
+    db: Session = Depends(get_db)
+):
+    jeton_val = donnees.jeton if (donnees and donnees.jeton) else jeton
+    nouveau_mdp = donnees.nouveau_mot_de_passe if (donnees and donnees.nouveau_mot_de_passe) else nouveau_mot_de_passe
 
-    email, _ = info
-    utilisateur = db.query(Utilisateur).filter(Utilisateur.email == email).first()
-    utilisateur.mot_de_passe_hash = hacher_mot_de_passe(nouveau_mot_de_passe)
+    if not jeton_val or not nouveau_mdp:
+        raise HTTPException(status_code=400, detail="Le jeton et le nouveau mot de passe sont obligatoires.")
+
+    jeton_val = str(jeton_val).strip()
+    if len(nouveau_mdp) < 6:
+        raise HTTPException(status_code=400, detail="Le mot de passe doit comporter au moins 6 caractères.")
+
+    enregistrement = db.query(JetonReinitialisation).filter(JetonReinitialisation.jeton == jeton_val).first()
+    if not enregistrement:
+        raise HTTPException(status_code=400, detail="Jeton de réinitialisation invalide ou déjà utilisé.")
+
+    if enregistrement.date_expiration < datetime.utcnow():
+        db.delete(enregistrement)
+        db.commit()
+        raise HTTPException(status_code=400, detail="Ce jeton de réinitialisation a expiré. Veuillez refaire une demande.")
+
+    utilisateur = db.query(Utilisateur).filter(Utilisateur.email == enregistrement.email).first()
+    if not utilisateur:
+        db.delete(enregistrement)
+        db.commit()
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable.")
+
+    utilisateur.mot_de_passe_hash = hacher_mot_de_passe(nouveau_mdp)
+    db.delete(enregistrement)
     db.commit()
-    del jetons_reinitialisation[jeton]
-    return {"message": "Mot de passe réinitialisé avec succès"}
+
+    return {"message": "Mot de passe réinitialisé avec succès !"}

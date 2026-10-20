@@ -2,59 +2,54 @@
 
 import React from "react";
 import {
-  FileText,
   Search,
   History,
   Lock,
   Cpu,
   GraduationCap,
   Scale,
-  CheckCircle2,
 } from "lucide-react";
+import { useLanguage } from "./LanguageContext";
 
 export default function Features() {
+  const { t } = useLanguage();
+
   const fonctionnalites = [
     {
       icon: Scale,
-      titre: "Citations d'articles officielles",
-      description:
-        "Toutes les réponses indiquent précisément le livre et le numéro de l'article de référence. Vous obtenez la certitude juridique sans ambiguïté.",
-      badge: "Zéro hallucination",
+      titre: t("feat.f1.titre"),
+      description: t("feat.f1.desc"),
+      badge: t("feat.f1.badge"),
     },
     {
       icon: Search,
-      titre: "Recherche par numéro ou par thème",
-      description:
-        "Demandez 'Que dit l'article 55 ?' ou formulez votre cas en français courant : Numeris229 identifie les textes applicables.",
-      badge: "Recherche intelligente",
+      titre: t("feat.f2.titre"),
+      description: t("feat.f2.desc"),
+      badge: t("feat.f2.badge"),
     },
     {
       icon: History,
-      titre: "Conversations sauvegardées & organisées",
-      description:
-        "Conservez l'historique complet de vos recherches, renommez vos dossiers de consultation et supprimez-les en un clic comme sur ChatGPT.",
-      badge: "Espace personnel",
+      titre: t("feat.f3.titre"),
+      description: t("feat.f3.desc"),
+      badge: t("feat.f3.badge"),
     },
     {
       icon: Lock,
-      titre: "Confidentialité & Sécurité totale",
-      description:
-        "Vos consultations restent privées. Chaque compte dispose d'un espace hermétique protégé par authentification chiffrée.",
-      badge: "Chiffrement fort",
+      titre: t("feat.f4.titre"),
+      description: t("feat.f4.desc"),
+      badge: t("feat.f4.badge"),
     },
     {
       icon: Cpu,
-      titre: "Technologie RAG & IA souveraine",
-      description:
-        "Alimenté par un pipeline RAG (Retrieval-Augmented Generation) combinant embeddings vectoriels et modèles de ré-ordonnancement de pointe.",
-      badge: "Haute performance",
+      titre: t("feat.f5.titre"),
+      description: t("feat.f5.desc"),
+      badge: t("feat.f5.badge"),
     },
     {
       icon: GraduationCap,
-      titre: "Vulgarisation & Pédagogie",
-      description:
-        "Idéal pour les citoyens désireux de connaître leurs droits numériques, ainsi que pour les professionnels soucieux de leur conformité légale.",
-      badge: "Pour tous",
+      titre: t("feat.f6.titre"),
+      description: t("feat.f6.desc"),
+      badge: t("feat.f6.badge"),
     },
   ];
 
@@ -65,13 +60,13 @@ export default function Features() {
         {/* En-tête de section */}
         <div className="text-center max-w-3xl mx-auto space-y-3">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-200/80 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-semibold uppercase tracking-wider">
-            <span>Pourquoi Numeris229</span>
+            <span>{t("feat.badge")}</span>
           </div>
           <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Une intelligence artificielle pensée pour la rigueur du droit béninois
+            {t("feat.titrePrincipal")}
           </h2>
           <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">
-            Conçu pour éliminer les approximations et rendre le Code du Numérique immédiatement exploitable par chacun.
+            {t("feat.sousTitrePrincipal")}
           </p>
         </div>
 

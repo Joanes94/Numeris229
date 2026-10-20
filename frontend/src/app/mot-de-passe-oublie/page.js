@@ -6,16 +6,20 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Loader2, AlertCircle, CheckCircle2, KeyRound } from "lucide-react";
 import Logo from "../../components/Logo";
 import ThemeToggle from "../../components/ThemeToggle";
+import LanguageToggle from "../../components/LanguageToggle";
+import PasswordInput from "../../components/PasswordInput";
+import { useLanguage } from "../../components/LanguageContext";
 import { motDePasseOublie, reinitialiserMotDePasse } from "../../lib/api";
 
 function FormulaireMotDePasseOublie() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useLanguage();
 
   const jetonUrl = searchParams.get("jeton") || "";
 
-  // État du mode : "demande" ou "reinitialisation"
   const [jeton, setJeton] = useState(jetonUrl);
+  const [jetonGenere, setJetonGenere] = useState("");
   const [email, setEmail] = useState("");
   const [nouveauMotDePasse, setNouveauMotDePasse] = useState("");
   const [confirmationMotDePasse, setConfirmationMotDePasse] = useState("");
@@ -35,11 +39,15 @@ function FormulaireMotDePasseOublie() {
     e.preventDefault();
     setErreur("");
     setSucces("");
+    setJetonGenere("");
     setChargement(true);
 
     try {
       const reponse = await motDePasseOublie(email.trim());
       setSucces(reponse.message || "Si cette adresse est enregistrée, vous recevrez les instructions de réinitialisation.");
+      if (reponse.jeton) {
+        setJetonGenere(reponse.jeton);
+      }
     } catch (err) {
       setErreur(err.message || "Une erreur est survenue lors de la demande.");
     } finally {
@@ -93,9 +101,12 @@ function FormulaireMotDePasseOublie() {
           className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Retour à la connexion</span>
+          <span>{t("nav.retourConnexion")}</span>
         </Link>
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          <LanguageToggle />
+          <ThemeToggle />
+        </div>
       </header>
 
       {/* Contenu principal */}
@@ -110,12 +121,12 @@ function FormulaireMotDePasseOublie() {
               </div>
             </div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-              {jeton ? "Nouveau mot de passe" : "Mot de passe oublié"}
+              {jeton ? t("auth.nouveauMdpTitre") : t("auth.recupTitre")}
             </h1>
             <p className="mt-1.5 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
               {jeton
-                ? "Définissez un nouveau mot de passe pour sécuriser votre compte"
-                : "Saisissez votre email pour recevoir les instructions de récupération"}
+                ? t("auth.nouveauMdpDesc")
+                : t("auth.recupDesc")}
             </p>
           </div>
 
@@ -143,7 +154,7 @@ function FormulaireMotDePasseOublie() {
                   htmlFor="email"
                   className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5"
                 >
-                  Adresse email
+                  {t("auth.email")}
                 </label>
                 <input
                   id="email"
@@ -151,7 +162,7 @@ function FormulaireMotDePasseOublie() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="votre.email@exemple.bj"
+                  placeholder={t("auth.emailPlaceholder")}
                   className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-700 text-sm transition-colors"
                 />
               </div>
@@ -167,30 +178,48 @@ function FormulaireMotDePasseOublie() {
                     <span>Envoi en cours...</span>
                   </>
                 ) : (
-                  <span>Envoyer le lien de réinitialisation</span>
+                  <span>{t("auth.btnEnvoyerLien")}</span>
                 )}
               </button>
 
+              {jetonGenere && (
+                <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-amber-900 dark:text-amber-200 text-xs">
+                  <div className="font-semibold mb-1 flex items-center gap-1.5">
+                    <span>💡 [Mode Développement local]</span>
+                  </div>
+                  <p className="text-slate-600 dark:text-slate-300 mb-2">
+                    Le serveur SMTP d'e-mail n'étant pas configuré en local, votre jeton a été généré avec succès. Vous pouvez continuer directement :
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setJeton(jetonGenere)}
+                    className="w-full py-2 px-3 rounded-lg bg-amber-700 hover:bg-amber-600 text-white font-medium text-xs transition-colors shadow-sm"
+                  >
+                    👉 Définir le nouveau mot de passe avec ce jeton
+                  </button>
+                </div>
+              )}
+
               <div className="pt-2 text-center text-xs text-slate-500">
-                Vous possédez déjà un jeton de réinitialisation ?{" "}
+                {t("auth.dejaJeton")}{" "}
                 <button
                   type="button"
                   onClick={() => setJeton("jeton-manuel")}
                   className="text-emerald-700 dark:text-emerald-400 font-semibold hover:underline"
                 >
-                  Saisir le jeton
+                  {t("auth.saisirJeton")}
                 </button>
               </div>
             </form>
           ) : (
-            /* Formulaire 2 : Nouveau mot de passe */
+            /* Formulaire 2 : Nouveau mot de passe avec affichage/masquage */
             <form onSubmit={handleReinitialiser} className="space-y-4">
               <div>
                 <label
                   htmlFor="jeton"
                   className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5"
                 >
-                  Jeton de sécurité
+                  {t("auth.jetonSecurite")}
                 </label>
                 <input
                   id="jeton"
@@ -208,16 +237,16 @@ function FormulaireMotDePasseOublie() {
                   htmlFor="nouveauMotDePasse"
                   className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5"
                 >
-                  Nouveau mot de passe
+                  {t("auth.nouveauMdp")}
                 </label>
-                <input
+                <PasswordInput
                   id="nouveauMotDePasse"
-                  type="password"
+                  name="nouveauMotDePasse"
                   required
+                  minLength={6}
                   value={nouveauMotDePasse}
                   onChange={(e) => setNouveauMotDePasse(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-700 text-sm transition-colors"
+                  autoComplete="new-password"
                 />
               </div>
 
@@ -226,16 +255,16 @@ function FormulaireMotDePasseOublie() {
                   htmlFor="confirmationMotDePasse"
                   className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5"
                 >
-                  Confirmer le mot de passe
+                  {t("auth.confirmationMdp")}
                 </label>
-                <input
+                <PasswordInput
                   id="confirmationMotDePasse"
-                  type="password"
+                  name="confirmationMotDePasse"
                   required
+                  minLength={6}
                   value={confirmationMotDePasse}
                   onChange={(e) => setConfirmationMotDePasse(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-700 text-sm transition-colors"
+                  autoComplete="new-password"
                 />
               </div>
 
@@ -250,7 +279,7 @@ function FormulaireMotDePasseOublie() {
                     <span>Mise à jour...</span>
                   </>
                 ) : (
-                  <span>Enregistrer le nouveau mot de passe</span>
+                  <span>{t("auth.btnEnregistrerMdp")}</span>
                 )}
               </button>
 
@@ -260,7 +289,7 @@ function FormulaireMotDePasseOublie() {
                   onClick={() => setJeton("")}
                   className="text-slate-600 dark:text-slate-400 hover:underline"
                 >
-                  Recommencer la demande par email
+                  {t("auth.recommencerDemande")}
                 </button>
               </div>
             </form>
@@ -268,12 +297,12 @@ function FormulaireMotDePasseOublie() {
 
           {/* Lien vers Connexion */}
           <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-600 dark:text-slate-400">
-            Vous vous souvenez de votre mot de passe ?{" "}
+            {t("auth.souvenezMdp")}{" "}
             <Link
               href="/connexion"
               className="font-semibold text-emerald-800 dark:text-emerald-400 hover:underline"
             >
-              Se connecter
+              {t("nav.connexion")}
             </Link>
           </div>
 

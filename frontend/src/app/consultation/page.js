@@ -29,6 +29,9 @@ import {
 } from "lucide-react";
 import Logo from "../../components/Logo";
 import ThemeToggle from "../../components/ThemeToggle";
+import LanguageToggle from "../../components/LanguageToggle";
+import AudioLecteur from "../../components/AudioLecteur";
+import { useLanguage } from "../../components/LanguageContext";
 import {
   obtenirProfil,
   listerConversations,
@@ -43,6 +46,7 @@ import {
 function ContenuConsultation() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t, langue } = useLanguage();
   const questionUrl = searchParams.get("question") || "";
 
   // États principaux
@@ -74,24 +78,24 @@ function ContenuConsultation() {
   // Suggestions de questions pour démarrer
   const suggestionsJuridiques = [
     {
-      titre: "Diffamation & Réseaux sociaux",
-      texte: "Quelles sont les peines encourues pour la diffamation et l'injure commises par le biais d'un moyen électronique ?",
-      livre: "Livre VI - Cybercriminalité",
+      titre: t("sug.s1.titre"),
+      texte: t("sug.s1.texte"),
+      livre: t("sug.s1.livre"),
     },
     {
-      titre: "Protection des Données Personnelles",
-      texte: "Quelles sont les obligations légales d'une entreprise avant de collecter des données personnelles au Bénin ?",
-      livre: "Livre V - Données Personnelles",
+      titre: t("sug.s2.titre"),
+      texte: t("sug.s2.texte"),
+      livre: t("sug.s2.livre"),
     },
     {
-      titre: "Validité de la Signature Électronique",
-      texte: "Quelle est la valeur juridique d'une signature électronique qualifiée par rapport à une signature manuscrite ?",
-      livre: "Livre III - Commerce Électronique",
+      titre: t("sug.s3.titre"),
+      texte: t("sug.s3.texte"),
+      livre: t("sug.s3.livre"),
     },
     {
-      titre: "Obligations d'un Site E-commerce",
-      texte: "Quelles sont les mentions légales obligatoires que doit afficher un site marchand exerçant au Bénin ?",
-      livre: "Livre III - Commerce Électronique",
+      titre: t("sug.s4.titre"),
+      texte: t("sug.s4.texte"),
+      livre: t("sug.s4.livre"),
     },
   ];
 
@@ -197,8 +201,10 @@ function ContenuConsultation() {
       if (textareaRef.current) {
         textareaRef.current.focus();
       }
+      return nouvelle.id;
     } catch (err) {
       setErreur(err.message || "Impossible de créer une nouvelle conversation.");
+      return null;
     }
   };
 
@@ -207,11 +213,12 @@ function ContenuConsultation() {
     const texte = (texteAEnvoyer || questionTexte).trim();
     if (!texte || chargementEnvoi) return;
 
-    if (!conversationActiveId) {
-      await handleNouvelleConversation();
+    let convId = conversationActiveId;
+    if (!convId) {
+      convId = await handleNouvelleConversation();
     }
+    if (!convId) return;
 
-    const convId = conversationActiveId;
     setErreur("");
     setChargementEnvoi(true);
     setQuestionTexte("");
@@ -236,7 +243,7 @@ function ContenuConsultation() {
     });
 
     try {
-      const reponseApi = await poserQuestionConversation(convId, texte);
+      const reponseApi = await poserQuestionConversation(convId, texte, langue);
 
       // Mise à jour de la réponse dans la conversation active
       setConversationActive((prev) => {
@@ -529,14 +536,14 @@ function ContenuConsultation() {
             className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
           >
             <BookOpen className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
-            <span>Explorateur des Articles</span>
+            <span>{t("nav.explorer")}</span>
           </Link>
           <Link
             href="/profil"
             className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
           >
             <User className="w-4 h-4 text-slate-500" />
-            <span>Mon Compte & Profil</span>
+            <span>{t("nav.profil")}</span>
           </Link>
         </div>
 
@@ -551,16 +558,17 @@ function ContenuConsultation() {
                 {utilisateur?.nom_prenoms || "Utilisateur"}
               </div>
               <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
-                {utilisateur?.profession || utilisateur?.email || "Citoyen"}
+                {utilisateur?.profession || utilisateur?.email || t("nav.citoyen")}
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-1 shrink-0">
+            <LanguageToggle compact className="!p-1.5" />
             <ThemeToggle className="!p-1.5" />
             <button
               onClick={handleDeconnexion}
-              title="Se déconnecter"
+              title={t("nav.deconnexion")}
               className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
             >
               <LogOut className="w-4 h-4" />
@@ -596,12 +604,14 @@ function ContenuConsultation() {
           </div>
 
           <div className="flex items-center gap-2">
+            <LanguageToggle compact />
+            <ThemeToggle className="!p-1.5" />
             <button
               onClick={() => handleNouvelleConversation()}
               className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Nouveau sujet</span>
+              <span className="hidden sm:inline">{t("chat.nouvelle")}</span>
             </button>
           </div>
         </header>
@@ -637,10 +647,10 @@ function ContenuConsultation() {
                 </div>
 
                 <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-                  Assistant Juridique Numeris229
+                  {t("chat.titre")}
                 </h2>
                 <p className="mt-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">
-                  Posez vos questions sur le Code du Numérique du Bénin. Les réponses sont rigoureusement sourcées avec les articles de loi applicables.
+                  {t("chat.sousTitre")}
                 </p>
 
                 {/* Suggestions cliquables */}
@@ -663,7 +673,7 @@ function ContenuConsultation() {
                         </p>
                       </div>
                       <div className="mt-3 flex items-center gap-1 text-[11px] font-semibold text-emerald-800 dark:text-emerald-400">
-                        <span>Explorer ce cas</span>
+                        <span>{t("chat.explorerCas")}</span>
                         <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                       </div>
                     </button>
@@ -700,23 +710,26 @@ function ContenuConsultation() {
                               <span>Numeris229 • Analyse juridique</span>
                             </div>
 
-                            <button
-                              onClick={() => handleCopier(msg.reponse, index)}
-                              className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors"
-                              title="Copier la réponse"
-                            >
-                              {copieIndex === index ? (
-                                <>
-                                  <CheckCheck className="w-3.5 h-3.5 text-emerald-600" />
-                                  <span className="text-emerald-600">Copié</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Copy className="w-3.5 h-3.5" />
-                                  <span>Copier</span>
-                                </>
-                              )}
-                            </button>
+                            <div className="flex items-center gap-1.5">
+                              <AudioLecteur texte={msg.reponse} />
+                              <button
+                                onClick={() => handleCopier(msg.reponse, index)}
+                                className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors"
+                                title={t("chat.copier")}
+                              >
+                                {copieIndex === index ? (
+                                  <>
+                                    <CheckCheck className="w-3.5 h-3.5 text-emerald-600" />
+                                    <span className="text-emerald-600">{t("chat.copie")}</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3.5 h-3.5" />
+                                    <span>{t("chat.copier")}</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
                           </div>
 
                           {/* Contenu textuel de la réponse */}
@@ -818,7 +831,7 @@ function ContenuConsultation() {
                   }
                 }}
                 rows={1}
-                placeholder="Posez votre question (ex : Que dit l'article 55 ?)..."
+                placeholder={t("chat.placeholder")}
                 disabled={chargementEnvoi}
                 className="w-full max-h-44 bg-transparent text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none resize-none px-2 py-1 leading-relaxed"
               />
@@ -827,7 +840,7 @@ function ContenuConsultation() {
                 type="submit"
                 disabled={!questionTexte.trim() || chargementEnvoi}
                 className="p-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-700 disabled:opacity-40 disabled:hover:bg-emerald-800 text-white transition-colors shrink-0 shadow-sm"
-                title="Envoyer la question"
+                title={t("chat.envoyer")}
               >
                 {chargementEnvoi ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -838,7 +851,7 @@ function ContenuConsultation() {
             </form>
 
             <div className="mt-2 text-center text-[11px] text-slate-400 dark:text-slate-500">
-              Numeris229 consulte la Loi N° 2017-20 du Bénin. Les réponses fournies ont une valeur informative.
+              {t("chat.avertissement")}
             </div>
           </div>
         </div>

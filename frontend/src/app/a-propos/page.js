@@ -1,62 +1,60 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
 import {
   Scale,
   ArrowLeft,
-  ShieldCheck,
   Cpu,
   BookOpen,
-  Building2,
   FileCheck2,
   AlertTriangle,
   Sparkles,
 } from "lucide-react";
 import Logo from "../../components/Logo";
 import ThemeToggle from "../../components/ThemeToggle";
+import LanguageToggle from "../../components/LanguageToggle";
 import Footer from "../../components/Footer";
-
-export const metadata = {
-  title: "À propos & Cadre Juridique - Numeris229",
-  description:
-    "Comprendre le fonctionnement de Numeris229, le Code du Numérique de la République du Bénin (Loi N° 2017-20) et la technologie RAG souveraine.",
-};
+import { useLanguage } from "../../components/LanguageContext";
 
 export default function PageAPropos() {
+  const { t } = useLanguage();
+
   const livres = [
     {
-      num: "Livre Préliminaire",
-      titre: "Dispositions Générales & Définitions",
-      desc: "Fixe les termes clés du droit numérique béninois : données informatiques, opérateurs, chiffrement, services en ligne, etc.",
+      num: t("apropos.l0.num"),
+      titre: t("apropos.l0.titre"),
+      desc: t("apropos.l0.desc"),
     },
     {
-      num: "Livre I",
-      titre: "Réseaux & Communications Électroniques",
-      desc: "Régit l'accès aux réseaux, le service universel, les licences d'opérateurs, les fréquences et la régulation par l'ARCEP.",
+      num: t("apropos.l1.num"),
+      titre: t("apropos.l1.titre"),
+      desc: t("apropos.l1.desc"),
     },
     {
-      num: "Livre II",
-      titre: "Outils Électroniques & Services de Confiance",
-      desc: "Encadre l'écrit électronique, la valeur probante des documents numériques, l'horodatage, le cachet et la signature électronique.",
+      num: t("apropos.l2.num"),
+      titre: t("apropos.l2.titre"),
+      desc: t("apropos.l2.desc"),
     },
     {
-      num: "Livre III",
-      titre: "Commerce Électronique",
-      desc: "Définit les contrats en ligne, les obligations des sites marchands, les mentions obligatoires et la protection des cyber-consommateurs.",
+      num: t("apropos.l3.num"),
+      titre: t("apropos.l3.titre"),
+      desc: t("apropos.l3.desc"),
     },
     {
-      num: "Livre IV",
-      titre: "Cybersécurité & Confiance Numérique",
-      desc: "Supervision des infrastructures d'importance vitale, qualifications des prestataires de sécurité et attributions de l'ANSSI Bénin.",
+      num: t("apropos.l4.num"),
+      titre: t("apropos.l4.titre"),
+      desc: t("apropos.l4.desc"),
     },
     {
-      num: "Livre V",
-      titre: "Protection des Données à Caractère Personnel",
-      desc: "Droits des citoyens fichés, consentement, déclarations et autorisations obligatoires auprès de l'APDP Bénin, transferts transfrontaliers.",
+      num: t("apropos.l5.num"),
+      titre: t("apropos.l5.titre"),
+      desc: t("apropos.l5.desc"),
     },
     {
-      num: "Livre VI",
-      titre: "Cybercriminalité & Répression Pénale",
-      desc: "Sanctions des infractions informatiques, escroquerie par internet, diffamation en ligne, usurpation d'identité et compétence de la CRIET.",
+      num: t("apropos.l6.num"),
+      titre: t("apropos.l6.titre"),
+      desc: t("apropos.l6.desc"),
     },
   ];
 
@@ -72,7 +70,7 @@ export default function PageAPropos() {
               className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Accueil</span>
+              <span>{t("nav.accueil")}</span>
             </Link>
             <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block" />
             <Logo size="sm" />
@@ -84,8 +82,9 @@ export default function PageAPropos() {
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition-colors"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Accéder à l'assistant</span>
+              <span>{t("hero.btnConsulter")}</span>
             </Link>
+            <LanguageToggle />
             <ThemeToggle />
           </div>
         </div>
@@ -98,15 +97,15 @@ export default function PageAPropos() {
         <div className="text-center space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 text-xs font-bold uppercase tracking-wider">
             <Scale className="w-3.5 h-3.5" />
-            <span>République du Bénin</span>
+            <span>{t("apropos.badge")}</span>
           </div>
 
           <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Cadre Légal & Mission de Numeris229
+            {t("apropos.titre")}
           </h1>
 
           <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
-            Démocratiser l'accès au droit numérique et accompagner les citoyens, juristes, développeurs et entreprises béninoises dans la conformité légale.
+            {t("apropos.sousTitre")}
           </p>
         </div>
 
@@ -118,18 +117,18 @@ export default function PageAPropos() {
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                La Loi N° 2017-20 portant Code du Numérique
+                {t("apropos.loiTitre")}
               </h2>
-              <p className="text-xs text-slate-500">Adoptée par l'Assemblée Nationale du Bénin le 20 avril 2018</p>
+              <p className="text-xs text-slate-500">{t("apropos.loiDate")}</p>
             </div>
           </div>
 
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-            Le Code du Numérique en République du Bénin constitue un socle législatif moderne et unifié regroupant l'ensemble des règles relatives aux communications électroniques, au commerce électronique, à la cybersécurité, aux données personnelles et à la répression de la cybercriminalité.
+            {t("apropos.loiDesc1")}
           </p>
 
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-            Modifié par la <strong>Loi N° 2020-35 du 06 janvier 2021</strong>, il articule les missions des institutions clés comme l'<strong>APDP</strong> (Autorité de Protection des Données Personnelles), l'<strong>ARCEP</strong> (Autorité de Régulation des Communications Électroniques et de la Poste), l'<strong>ANSSI-Bénin</strong>, et le pôle judiciaire spécialisé de la <strong>CRIET</strong>.
+            {t("apropos.loiDesc2")}
           </p>
         </section>
 
@@ -137,7 +136,7 @@ export default function PageAPropos() {
         <section className="space-y-4">
           <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <FileCheck2 className="w-5 h-5 text-emerald-700 dark:text-emerald-400" />
-            <span>Structure des 7 Livres du Code du Numérique</span>
+            <span>{t("apropos.livresTitre")}</span>
           </h2>
 
           <div className="grid sm:grid-cols-2 gap-4">
@@ -168,26 +167,20 @@ export default function PageAPropos() {
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                Intelligence Artificielle & Recherche RAG Souveraine
+                {t("apropos.ragTitre")}
               </h2>
-              <p className="text-xs text-slate-500">Pipeline Retrieval-Augmented Generation avec ré-ordonnancement</p>
+              <p className="text-xs text-slate-500">{t("apropos.ragSousTitre")}</p>
             </div>
           </div>
 
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-            Pour éliminer tout risque d'hallucination ou d'approximation juridique, Numeris229 s'appuie sur une architecture <strong>RAG (Retrieval-Augmented Generation)</strong> :
+            {t("apropos.ragIntro")}
           </p>
 
           <ul className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 space-y-2 list-disc list-inside leading-relaxed">
-            <li>
-              <strong>Indexation vectorielle ChromaDB :</strong> Les articles et chapitres de la loi sont découpés en fragments sémantiques et vectorisés avec des modèles d'embeddings spécialisés.
-            </li>
-            <li>
-              <strong>Ré-ordonnancement sémantique (Reranker) :</strong> Lorsqu'une question est formulée, un algorithme de cross-encoder compare la requête avec les textes pertinents pour extraire les articles exacts.
-            </li>
-            <li>
-              <strong>Génération conditionnée :</strong> Le modèle de langage rédige sa réponse en citant obligatoirement les livres et numéros d'articles de référence du droit béninois.
-            </li>
+            <li>{t("apropos.ragPoint1")}</li>
+            <li>{t("apropos.ragPoint2")}</li>
+            <li>{t("apropos.ragPoint3")}</li>
           </ul>
         </section>
 
@@ -195,15 +188,15 @@ export default function PageAPropos() {
         <section className="bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/60 rounded-2xl p-6 sm:p-8 space-y-3">
           <div className="flex items-center gap-2.5 text-amber-900 dark:text-amber-300 font-bold text-sm">
             <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
-            <span>Avertissement Juridique & Clause de Non-responsabilité</span>
+            <span>{t("apropos.avertissementTitre")}</span>
           </div>
 
           <p className="text-xs text-amber-800 dark:text-amber-400 leading-relaxed">
-            Numeris229 est un système de recherche documentaire et d'assistance juridique automatisé. Bien que les réponses s'appuient sur les textes officiels de la République du Bénin, elles sont fournies à titre indicatif et éducatif.
+            {t("apropos.avertissementDesc1")}
           </p>
 
           <p className="text-xs text-amber-800 dark:text-amber-400 leading-relaxed">
-            L'utilisation de cette plateforme ne constitue en aucun cas une relation d'avocat à client et ne saurait se substituer aux conseils d'un avocat inscrit au Barreau du Bénin, aux avis officiels de l'APDP ou aux décisions des juridictions compétentes.
+            {t("apropos.avertissementDesc2")}
           </p>
         </section>
 
@@ -213,7 +206,7 @@ export default function PageAPropos() {
             href="/consultation"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white font-semibold text-sm transition-all shadow-md active:scale-95"
           >
-            <span>Démarrer une consultation</span>
+            <span>{t("apropos.btnDemarrer")}</span>
             <Sparkles className="w-4 h-4" />
           </Link>
         </div>

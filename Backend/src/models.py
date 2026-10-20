@@ -41,3 +41,12 @@ class Message(Base):
     horodatage = Column(DateTime, default=datetime.utcnow)
 
     conversation = relationship("Conversation", back_populates="messages")
+
+
+class JetonReinitialisation(Base):
+    __tablename__ = "jetons_reinitialisation"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    jeton = Column(String, unique=True, index=True, nullable=False)
+    email = Column(String, nullable=False, index=True)
+    date_expiration = Column(DateTime, nullable=False)

@@ -42,3 +42,10 @@ class UtilisateurReponse(BaseModel):
 
 class ConversationMiseAJour(BaseModel):
     titre: str
+
+class MotDePasseOublieDemande(BaseModel):
+    email: EmailStr
+
+class ReinitialisationDemande(BaseModel):
+    jeton: str
+    nouveau_mot_de_passe: str

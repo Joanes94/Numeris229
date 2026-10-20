@@ -27,9 +27,12 @@ class Pipeline:
         self.generator = Generator()
         print("Pipeline RAG prêt.")
 
-    def repondre(self, question: str) -> dict:
+    def repondre(self, question: str, langue: str = "fr") -> dict:
+        is_en = (langue == "en") or ("in english" in question.lower()) or ("english" in question.lower())
+
         if not question or not question.strip():
-            return {"reponse": "Veuillez poser votre question sur le Code du Numérique.", "sources": []}
+            msg_vide = "Please enter your question about the Digital Code." if is_en else "Veuillez poser votre question sur le Code du Numérique."
+            return {"reponse": msg_vide, "sources": []}
 
         question_propre = question.strip()
         m = MOTIF_NUMERO_ARTICLE.search(question_propre)
@@ -50,8 +53,9 @@ class Pipeline:
                 else:
                     documents = docs_article[:3]
             else:
+                msg_introuvable = f"Article {num} was not found in the Benin Digital Code." if is_en else f"L'article {num} n'a pas été trouvé dans les dispositions du Code du Numérique."
                 return {
-                    "reponse": f"L'article {num} n'a pas été trouvé dans les dispositions du Code du Numérique.",
+                    "reponse": msg_introuvable,
                     "sources": []
                 }
 
@@ -59,8 +63,9 @@ class Pipeline:
         if not documents:
             candidats = self.retriever.rechercher(question_propre, n=15)
             if not candidats:
+                msg_absent = "This information was not found in the Benin Digital Code." if is_en else "Je ne trouve pas cette information dans le Code du Numérique."
                 return {
-                    "reponse": "Je ne trouve pas cette information dans le Code du Numérique.",
+                    "reponse": msg_absent,
                     "sources": []
                 }
 
@@ -69,26 +74,31 @@ class Pipeline:
             # Vérification de sécurité du score de pertinence du reranker
             score_top = documents[0].get("score_reranker", 0)
             if score_top < -8.0:
+                msg_absent = "This information was not found in the Benin Digital Code." if is_en else "Je ne trouve pas cette information dans le Code du Numérique."
                 return {
-                    "reponse": "Je ne trouve pas cette information dans le Code du Numérique.",
+                    "reponse": msg_absent,
                     "sources": []
                 }
 
         # 3. Génération de la réponse avec le LLM
         try:
-            reponse = self.generator.generer(question_propre, documents)
+            reponse = self.generator.generer(question_propre, documents, langue=langue)
         except Exception as e:
             print(f"[Erreur Générateur] : {e}")
             doc_secours = documents[0]
             num = doc_secours['meta']['numero_article']
             titre = doc_secours['meta'].get('titre_article', '').strip()
             entete = f"Article {num}" + (f" ({titre})" if titre else "")
-            reponse = f"Selon l'{entete} du Code du Numérique :\n\n{doc_secours['texte'].strip()}"
+            if is_en:
+                reponse = f"According to {entete} of the Benin Digital Code:\n\n{doc_secours['texte'].strip()}"
+            else:
+                reponse = f"Selon l'{entete} du Code du Numérique :\n\n{doc_secours['texte'].strip()}"
 
         # Si le modèle avoue ne pas trouver la réponse
         if any(p in reponse.lower() for p in PHRASES_NE_SAIT_PAS):
+            msg_non_trouve = "This information was not found in the provisions of the Benin Digital Code." if is_en else "Cette information n'a pas été trouvée dans les dispositions du Code du Numérique du Bénin."
             return {
-                "reponse": "Cette information n'a pas été trouvée dans les dispositions du Code du Numérique du Bénin.",
+                "reponse": msg_non_trouve,
                 "sources": []
             }
 
@@ -105,8 +115,13 @@ class Pipeline:
 
         # Si la réponse ne commence pas déjà par mentionner l'article
         reponse_finale = reponse.strip()
-        if not re.search(r"^(selon|d'apr[eè]s|l'article|les articles)", reponse_finale, re.IGNORECASE):
-            article_principal = documents[0]["meta"]["numero_article"]
-            reponse_finale = f"Selon l'article {article_principal} du Code du Numérique : {reponse_finale}"
+        if is_en:
+            if not re.search(r"^(according|under|in accordance|article|the article)", reponse_finale, re.IGNORECASE):
+                article_principal = documents[0]["meta"]["numero_article"]
+                reponse_finale = f"According to Article {article_principal} of the Digital Code: {reponse_finale}"
+        else:
+            if not re.search(r"^(selon|d'apr[eè]s|l'article|les articles)", reponse_finale, re.IGNORECASE):
+                article_principal = documents[0]["meta"]["numero_article"]
+                reponse_finale = f"Selon l'article {article_principal} du Code du Numérique : {reponse_finale}"
 
         return {"reponse": reponse_finale, "sources": sources}

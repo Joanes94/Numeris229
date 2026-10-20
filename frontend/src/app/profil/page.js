@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import Logo from "../../components/Logo";
 import ThemeToggle from "../../components/ThemeToggle";
+import LanguageToggle from "../../components/LanguageToggle";
+import { useLanguage } from "../../components/LanguageContext";
 import {
   obtenirProfil,
   modifierProfil,
@@ -31,6 +33,7 @@ import {
 
 export default function PageProfil() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [utilisateur, setUtilisateur] = useState(null);
   const [formulaire, setFormulaire] = useState({
@@ -166,13 +169,14 @@ export default function PageProfil() {
           </div>
 
           <div className="flex items-center gap-2">
+            <LanguageToggle />
             <ThemeToggle />
             <button
               onClick={handleDeconnexion}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 transition-colors"
             >
               <LogOut className="w-3.5 h-3.5" />
-              <span>Déconnexion</span>
+              <span>{t("nav.deconnexion")}</span>
             </button>
           </div>
         </div>
