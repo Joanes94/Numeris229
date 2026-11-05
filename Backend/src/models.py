@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from database import Base
@@ -14,8 +14,12 @@ class Utilisateur(Base):
     profession = Column(String, nullable=False)
     telephone = Column(String, nullable=False)
     mot_de_passe_hash = Column(String, nullable=False)
+    role = Column(String, default="citoyen", nullable=False)  # "citoyen", "admin", "juriste"
+    est_actif = Column(Boolean, default=True, nullable=False)
+    cree_le = Column(DateTime, default=datetime.utcnow)
 
     conversations = relationship("Conversation", back_populates="utilisateur", cascade="all, delete-orphan")
+    signalements = relationship("Signalement", back_populates="utilisateur", cascade="all, delete-orphan")
 
 
 class Conversation(Base):
@@ -50,3 +54,40 @@ class JetonReinitialisation(Base):
     jeton = Column(String, unique=True, index=True, nullable=False)
     email = Column(String, nullable=False, index=True)
     date_expiration = Column(DateTime, nullable=False)
+
+
+class Signalement(Base):
+    """
+    Signalement d'anomalie ou retour utilisateur pour l'Administrateur (Acteur Secondaire).
+    """
+    __tablename__ = "signalements"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    utilisateur_id = Column(Integer, ForeignKey("utilisateurs.id"), nullable=True)
+    conversation_id = Column(String, ForeignKey("conversations.id"), nullable=True)
+    question = Column(Text, nullable=False)
+    reponse = Column(Text, nullable=False)
+    motif = Column(String, nullable=False)  # "reponse_inexacte", "article_manquant", "hallucination", "autre"
+    commentaire = Column(Text, nullable=True)
+    statut = Column(String, default="en_attente")  # "en_attente", "examine", "resolu", "rejete"
+    reponse_admin = Column(Text, nullable=True)
+    cree_le = Column(DateTime, default=datetime.utcnow)
+    traite_le = Column(DateTime, nullable=True)
+
+    utilisateur = relationship("Utilisateur", back_populates="signalements")
+
+
+class JournalRequete(Base):
+    """
+    Télémétrie et métriques d'observabilité du RAG pour le tableau de bord Administrateur.
+    """
+    __tablename__ = "journal_requetes"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    utilisateur_id = Column(Integer, nullable=True)
+    question = Column(Text, nullable=False)
+    langue = Column(String, default="fr")
+    temps_reponse_ms = Column(Integer, nullable=True)
+    articles_cites = Column(String, nullable=True)  # ex: "Article 55, Article 125"
+    est_succes = Column(Boolean, default=True)      # False si "non trouvé"
+    horodatage = Column(DateTime, default=datetime.utcnow)

@@ -28,22 +28,39 @@ def utilisateur_courant(credentials: HTTPAuthorizationCredentials = Depends(secu
     utilisateur = db.query(Utilisateur).filter(Utilisateur.email == email).first()
     if not utilisateur:
         raise HTTPException(status_code=401, detail="Utilisateur introuvable")
+    if not getattr(utilisateur, "est_actif", True):
+        raise HTTPException(status_code=403, detail="Ce compte a été suspendu par l'administration.")
+    return utilisateur
+
+
+def exiger_admin(utilisateur: Utilisateur = Depends(utilisateur_courant)):
+    if getattr(utilisateur, "role", "citoyen") != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Accès interdit : privilèges administrateur requis."
+        )
     return utilisateur
 
 
 @router.post("/auth/inscription", response_model=UtilisateurReponse)
 def inscription(donnees: UtilisateurCreation, db: Session = Depends(get_db)):
-    if db.query(Utilisateur).filter(Utilisateur.email == donnees.email).first():
+    email_propre = donnees.email.strip().lower()
+    if db.query(Utilisateur).filter(Utilisateur.email == email_propre).first():
         raise HTTPException(status_code=400, detail="Cet email est déjà utilisé")
 
+    # Toute personne qui s'inscrit est d'office 'citoyen'
+    role_initial = "citoyen"
+
     utilisateur = Utilisateur(
-        nom_prenoms=donnees.nom_prenoms,
-        email=donnees.email,
+        nom_prenoms=donnees.nom_prenoms.strip(),
+        email=email_propre,
         sexe=donnees.sexe,
         age=donnees.age,
         profession=donnees.profession,
         telephone=donnees.telephone,
         mot_de_passe_hash=hacher_mot_de_passe(donnees.mot_de_passe),
+        role=role_initial,
+        est_actif=True
     )
     db.add(utilisateur)
     db.commit()
@@ -53,11 +70,21 @@ def inscription(donnees: UtilisateurCreation, db: Session = Depends(get_db)):
 
 @router.post("/auth/connexion")
 def connexion(donnees: UtilisateurConnexion, db: Session = Depends(get_db)):
-    utilisateur = db.query(Utilisateur).filter(Utilisateur.email == donnees.email).first()
+    email_propre = donnees.email.strip().lower()
+    utilisateur = db.query(Utilisateur).filter(Utilisateur.email == email_propre).first()
     if not utilisateur or not verifier_mot_de_passe(donnees.mot_de_passe, utilisateur.mot_de_passe_hash):
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
+    
+    if not getattr(utilisateur, "est_actif", True):
+        raise HTTPException(status_code=403, detail="Votre compte a été suspendu par l'administrateur.")
+
     token = creer_token(utilisateur.email)
-    return {"access_token": token, "token_type": "bearer"}
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "role": getattr(utilisateur, "role", "citoyen"),
+        "nom_prenoms": utilisateur.nom_prenoms
+    }
 
 
 @router.get("/auth/moi", response_model=UtilisateurReponse)
@@ -82,7 +109,7 @@ def modifier_profil(
 def supprimer_compte(utilisateur: Utilisateur = Depends(utilisateur_courant), db: Session = Depends(get_db)):
     db.delete(utilisateur)
     db.commit()
-    return {"message": "Compte supprimé"}
+    return {"message": "Compte supprimé définitivement (Conformité Livre V)."}
 
 
 @router.post("/auth/mot-de-passe-oublie")

@@ -25,13 +25,17 @@ export default function PageConnexion() {
     setChargement(true);
 
     try {
-      await connecterUtilisateur({
+      const resultat = await connecterUtilisateur({
         email: email.trim(),
         mot_de_passe: motDePasse,
       });
 
-      // Redirection vers l'espace de consultation après connexion réussie
-      router.push("/consultation");
+      // Redirection intelligente selon le rôle de l'utilisateur
+      if (resultat && resultat.role === "admin") {
+        router.push("/admin");
+      } else {
+        router.push("/consultation");
+      }
     } catch (err) {
       setErreur(err.message || "Une erreur est survenue lors de la connexion.");
     } finally {

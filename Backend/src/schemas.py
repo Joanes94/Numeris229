@@ -1,4 +1,5 @@
 from pydantic import BaseModel, EmailStr, field_validator
+from datetime import datetime
 
 class UtilisateurCreation(BaseModel):
     nom_prenoms: str
@@ -36,6 +37,9 @@ class UtilisateurReponse(BaseModel):
     age: int
     profession: str
     telephone: str
+    role: str = "citoyen"
+    est_actif: bool = True
+    cree_le: datetime | None = None
 
     class Config:
         from_attributes = True
@@ -49,3 +53,39 @@ class MotDePasseOublieDemande(BaseModel):
 class ReinitialisationDemande(BaseModel):
     jeton: str
     nouveau_mot_de_passe: str
+
+
+# ==============================================================================
+# SCHEMAS SIGNALEMENTS & ADMINISTRATION (ADMIN ACTEUR SECONDAIRE)
+# ==============================================================================
+
+class SignalementCreation(BaseModel):
+    conversation_id: str | None = None
+    question: str
+    reponse: str
+    motif: str  # "reponse_inexacte", "article_manquant", "hallucination", "autre"
+    commentaire: str | None = None
+
+class SignalementReponse(BaseModel):
+    id: int
+    utilisateur_id: int | None
+    conversation_id: str | None
+    question: str
+    reponse: str
+    motif: str
+    commentaire: str | None
+    statut: str
+    reponse_admin: str | None
+    cree_le: datetime
+    traite_le: datetime | None
+
+    class Config:
+        from_attributes = True
+
+class SignalementTraitement(BaseModel):
+    statut: str  # "examine", "resolu", "rejete"
+    reponse_admin: str | None = None
+
+class UtilisateurStatutModif(BaseModel):
+    est_actif: bool | None = None
+    role: str | None = None  # "citoyen", "admin", "juriste"

@@ -26,6 +26,10 @@ import {
   Sparkles,
   BookOpen,
   ArrowRight,
+  Shield,
+  BarChart3,
+  Users,
+  RefreshCw,
 } from "lucide-react";
 import Logo from "../../components/Logo";
 import ThemeToggle from "../../components/ThemeToggle";
@@ -41,6 +45,8 @@ import {
   renommerConversation,
   supprimerConversation,
   supprimerToken,
+  envoyerSignalement,
+  estRoleAdmin,
 } from "../../lib/api";
 
 function ContenuConsultation() {
@@ -51,6 +57,7 @@ function ContenuConsultation() {
 
   // États principaux
   const [utilisateur, setUtilisateur] = useState(null);
+  const [estAdmin, setEstAdmin] = useState(false);
   const [chargementInitial, setChargementInitial] = useState(true);
   const [conversations, setConversations] = useState([]);
   const [conversationActiveId, setConversationActiveId] = useState(null);
@@ -71,6 +78,13 @@ function ContenuConsultation() {
   // Sources dépliées & Copie
   const [sourcesDepliees, setSourcesDepliees] = useState({});
   const [copieIndex, setCopieIndex] = useState(null);
+
+  // Signalement à l'administrateur (Acteur Secondaire)
+  const [signalementMsg, setSignalementMsg] = useState(null);
+  const [motifSignalement, setMotifSignalement] = useState("reponse_inexacte");
+  const [commentaireSignalement, setCommentaireSignalement] = useState("");
+  const [envoiSignalementEnCours, setEnvoiSignalementEnCours] = useState(false);
+  const [signalementEnvoyeSucces, setSignalementEnvoyeSucces] = useState(false);
 
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
@@ -109,6 +123,9 @@ function ContenuConsultation() {
           return;
         }
         setUtilisateur(profil);
+        if (profil.role === "admin" || estRoleAdmin()) {
+          setEstAdmin(true);
+        }
 
         // Charger l'historique des conversations
         const liste = await listerConversations();
@@ -343,6 +360,31 @@ function ContenuConsultation() {
     }));
   };
 
+  // Soumission d'un signalement d'anomalie juridique à l'administrateur
+  const handleEnvoyerSignalement = async () => {
+    if (!signalementMsg) return;
+    setEnvoiSignalementEnCours(true);
+    try {
+      await envoyerSignalement({
+        conversation_id: conversationActiveId,
+        question: signalementMsg.question,
+        reponse: signalementMsg.reponse,
+        motif: motifSignalement,
+        commentaire: commentaireSignalement,
+      });
+      setSignalementEnvoyeSucces(true);
+      setTimeout(() => {
+        setSignalementMsg(null);
+        setSignalementEnvoyeSucces(false);
+        setCommentaireSignalement("");
+      }, 1800);
+    } catch (err) {
+      alert("Erreur lors de l'envoi du signalement : " + (err.message || "Erreur réseau"));
+    } finally {
+      setEnvoiSignalementEnCours(false);
+    }
+  };
+
   // Déconnexion
   const handleDeconnexion = () => {
     supprimerToken();
@@ -393,7 +435,7 @@ function ContenuConsultation() {
         </div>
 
         {/* Bouton Nouvelle Consultation */}
-        <div className="p-3">
+        <div className="p-3 space-y-2">
           <button
             onClick={() => handleNouvelleConversation()}
             className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white font-medium text-sm transition-all shadow-sm active:scale-[0.99]"
@@ -406,6 +448,22 @@ function ContenuConsultation() {
               +
             </span>
           </button>
+
+          {/* Accès privilégié Tableau de Bord Admin (si administrateur) */}
+          {estAdmin && (
+            <Link
+              href="/admin"
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500/20 via-amber-500/15 to-amber-600/20 hover:from-amber-500/30 hover:to-amber-600/30 text-amber-900 dark:text-amber-200 border border-amber-500/40 font-bold text-xs shadow-sm transition-all group"
+            >
+              <span className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform" />
+                <span>Tableau de bord Admin</span>
+              </span>
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-500/30 text-amber-800 dark:text-amber-300">
+                ADMIN
+              </span>
+            </Link>
+          )}
         </div>
 
         {/* Liste des conversations */}
@@ -550,15 +608,23 @@ function ContenuConsultation() {
         {/* Pied de sidebar : Profil connecté, thème & déconnexion */}
         <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-100/60 dark:bg-slate-900 flex items-center justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-full bg-emerald-800 text-white flex items-center justify-center font-bold text-xs shrink-0">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${estAdmin ? "bg-amber-600 text-white ring-2 ring-amber-400/50" : "bg-emerald-800 text-white"}`}>
               {utilisateur?.nom_prenoms?.charAt(0).toUpperCase() || "U"}
             </div>
             <div className="min-w-0">
               <div className="text-xs font-semibold text-slate-900 dark:text-white truncate">
                 {utilisateur?.nom_prenoms || "Utilisateur"}
               </div>
-              <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
-                {utilisateur?.profession || utilisateur?.email || t("nav.citoyen")}
+              <div className="text-[10px] truncate">
+                {estAdmin ? (
+                  <span className="font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                    <Shield className="w-3 h-3 inline" /> Admin Système
+                  </span>
+                ) : (
+                  <span className="text-slate-500 dark:text-slate-400">
+                    {utilisateur?.profession || utilisateur?.email || t("nav.citoyen")}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -604,6 +670,16 @@ function ContenuConsultation() {
           </div>
 
           <div className="flex items-center gap-2">
+            {estAdmin && (
+              <Link
+                href="/admin"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-xs font-bold transition-all shadow-sm ring-1 ring-amber-500/20"
+                title="Accéder au Tableau de bord Administrateur"
+              >
+                <Shield className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                <span className="hidden sm:inline">Mode Admin</span>
+              </Link>
+            )}
             <LanguageToggle compact />
             <ThemeToggle className="!p-1.5" />
             <button
@@ -615,6 +691,46 @@ function ContenuConsultation() {
             </button>
           </div>
         </header>
+
+        {/* Bandeau de Supervision Administrateur (Privilèges élevés) */}
+        {estAdmin && (
+          <div className="bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-emerald-500/10 border-b border-amber-500/30 px-4 py-2 flex flex-wrap items-center justify-between gap-2.5 text-xs shrink-0">
+            <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200 font-semibold">
+              <Shield className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+              <span>Session Administrateur active — Mode Supervision RAG & Gouvernance</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/admin"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-sm transition-all active:scale-95"
+              >
+                <BarChart3 className="w-3.5 h-3.5" />
+                <span>Ouvrir Dashboard Admin</span>
+              </Link>
+              <Link
+                href="/admin?onglet=utilisateurs"
+                className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/90 dark:bg-slate-900/90 border border-amber-500/30 hover:bg-white text-slate-800 dark:text-slate-200 text-xs font-medium transition-colors"
+              >
+                <Users className="w-3.5 h-3.5 text-amber-600" />
+                <span>Comptes Citoyens</span>
+              </Link>
+              <Link
+                href="/admin?onglet=signalements"
+                className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/90 dark:bg-slate-900/90 border border-amber-500/30 hover:bg-white text-slate-800 dark:text-slate-200 text-xs font-medium transition-colors"
+              >
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                <span>Signalements</span>
+              </Link>
+              <Link
+                href="/admin?onglet=corpus"
+                className="hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/90 dark:bg-slate-900/90 border border-amber-500/30 hover:bg-white text-slate-800 dark:text-slate-200 text-xs font-medium transition-colors"
+              >
+                <RefreshCw className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Corpus RAG</span>
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* Message d'erreur s'il y en a un */}
         {erreur && (
@@ -729,6 +845,13 @@ function ContenuConsultation() {
                                   </>
                                 )}
                               </button>
+                              <button
+                                onClick={() => setSignalementMsg(msg)}
+                                className="inline-flex items-center gap-1 px-1.5 py-1 rounded text-[11px] font-medium text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors"
+                                title="Signaler une anomalie ou inexactitude juridique à l'administrateur"
+                              >
+                                <AlertCircle className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                           </div>
 
@@ -775,6 +898,55 @@ function ContenuConsultation() {
                                   ))}
                                 </div>
                               )}
+                            </div>
+                          )}
+
+                          {/* Encart réservé à l'Administrateur : Métriques & Supervision RAG */}
+                          {estAdmin && (
+                            <div className="mt-3.5 pt-3 border-t border-amber-500/20 bg-amber-500/5 -mx-4 -mb-4 p-3 rounded-b-2xl">
+                              <div className="flex items-center justify-between text-[11px] font-semibold text-amber-900 dark:text-amber-200 mb-1.5">
+                                <span className="flex items-center gap-1.5">
+                                  <Shield className="w-3.5 h-3.5 text-amber-600" />
+                                  <span>Supervision RAG (Mode Administrateur)</span>
+                                </span>
+                                <span className="font-mono text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-800 dark:text-amber-300 font-bold">
+                                  Inférence Souveraine
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[10px] text-slate-600 dark:text-slate-400 mt-2">
+                                <div className="p-1.5 rounded bg-white/70 dark:bg-slate-900/70 border border-amber-500/20">
+                                  Pipeline : <strong className="text-slate-800 dark:text-slate-200">Solon + TF-IDF</strong>
+                                </div>
+                                <div className="p-1.5 rounded bg-white/70 dark:bg-slate-900/70 border border-amber-500/20">
+                                  Reranker : <strong className="text-slate-800 dark:text-slate-200">CamemBERT Cross-Encoder</strong>
+                                </div>
+                                <div className="p-1.5 rounded bg-white/70 dark:bg-slate-900/70 border border-amber-500/20">
+                                  LLM : <strong className="text-slate-800 dark:text-slate-200">Ollama gemma3:1b</strong>
+                                </div>
+                              </div>
+                              <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                                <Link
+                                  href="/admin?onglet=signalements"
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-amber-500/30 hover:border-amber-500 text-[10px] font-semibold text-amber-800 dark:text-amber-300 transition-colors shadow-xs"
+                                >
+                                  <AlertTriangle className="w-3 h-3 text-amber-600" />
+                                  <span>Vérifier les signalements</span>
+                                </Link>
+                                <Link
+                                  href="/admin?onglet=corpus"
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-emerald-500/30 hover:border-emerald-500 text-[10px] font-semibold text-emerald-800 dark:text-emerald-300 transition-colors shadow-xs"
+                                >
+                                  <BookOpen className="w-3 h-3 text-emerald-600" />
+                                  <span>Superviser le corpus</span>
+                                </Link>
+                                <Link
+                                  href="/admin?onglet=utilisateurs"
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:border-slate-500 text-[10px] font-semibold text-slate-700 dark:text-slate-300 transition-colors shadow-xs"
+                                >
+                                  <Users className="w-3 h-3 text-slate-500" />
+                                  <span>Comptes usagers</span>
+                                </Link>
+                              </div>
                             </div>
                           )}
 
@@ -857,6 +1029,92 @@ function ContenuConsultation() {
         </div>
 
       </main>
+
+      {/* MODAL DE SIGNALEMENT D'ANOMALIE (ADMIN ACTEUR SECONDAIRE) */}
+      {signalementMsg && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-xl space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2 text-amber-600 font-bold text-sm">
+                <AlertCircle className="w-4 h-4" />
+                <span>Signaler une réponse juridique</span>
+              </div>
+              <button
+                onClick={() => setSignalementMsg(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {signalementEnvoyeSucces ? (
+              <div className="py-6 text-center space-y-2">
+                <Check className="w-8 h-8 text-emerald-600 mx-auto" />
+                <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                  Signalement transmis avec succès à l'administration !
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  Nos juristes et administrateurs examineront cette réponse pour enrichir le corpus.
+                </p>
+              </div>
+            ) : (
+              <>
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  Vous avez constaté une inexactitude, un manque d'article ou une ambiguïté ?
+                  Votre retour permettra à l'administrateur d'ajuster le corpus juridique.
+                </p>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Motif du signalement
+                  </label>
+                  <select
+                    value={motifSignalement}
+                    onChange={(e) => setMotifSignalement(e.target.value)}
+                    className="w-full text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-2.5"
+                  >
+                    <option value="reponse_inexacte">Réponse juridique inexacte ou incomplète</option>
+                    <option value="article_manquant">Article ou livre de loi non cité / absent</option>
+                    <option value="hallucination">Le modèle a extrapolé ou mal interprété la loi</option>
+                    <option value="autre">Autre remarque ou suggestion</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Précision (facultatif)
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={commentaireSignalement}
+                    onChange={(e) => setCommentaireSignalement(e.target.value)}
+                    placeholder="Expliquez ce qui devrait être rectifié ou précisé..."
+                    className="w-full text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-2.5 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    onClick={() => setSignalementMsg(null)}
+                    disabled={envoiSignalementEnCours}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={handleEnvoyerSignalement}
+                    disabled={envoiSignalementEnCours}
+                    className="px-4 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold flex items-center gap-1.5"
+                  >
+                    {envoiSignalementEnCours && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    <span>Envoyer à l'administrateur</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

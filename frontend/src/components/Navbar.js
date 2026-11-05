@@ -6,16 +6,30 @@ import Logo from "./Logo";
 import ThemeToggle from "./ThemeToggle";
 import LanguageToggle from "./LanguageToggle";
 import { useLanguage } from "./LanguageContext";
-import { obtenirToken } from "../lib/api";
-import { BookOpen, Sparkles, User } from "lucide-react";
+import { obtenirToken, obtenirProfil, estRoleAdmin } from "../lib/api";
+import { BookOpen, Sparkles, User, Shield } from "lucide-react";
 
 export default function Navbar() {
   const [connecte, setConnecte] = useState(false);
+  const [estAdmin, setEstAdmin] = useState(false);
   const { t } = useLanguage();
 
   useEffect(() => {
     const token = obtenirToken();
     setConnecte(!!token);
+
+    if (token) {
+      if (estRoleAdmin()) {
+        setEstAdmin(true);
+      }
+      obtenirProfil().then((p) => {
+        if (p && p.role === "admin") {
+          setEstAdmin(true);
+        } else {
+          setEstAdmin(false);
+        }
+      }).catch(() => {});
+    }
   }, []);
 
   return (
@@ -61,6 +75,16 @@ export default function Navbar() {
 
           {connecte ? (
             <>
+              {estAdmin && (
+                <Link
+                  href="/admin"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-800 dark:text-amber-300 border border-amber-500/40 text-xs font-bold transition-all shadow-sm ring-1 ring-amber-500/20"
+                  title="Tableau de bord Administrateur"
+                >
+                  <Shield className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                  <span>Espace Admin</span>
+                </Link>
+              )}
               <Link
                 href="/profil"
                 className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"

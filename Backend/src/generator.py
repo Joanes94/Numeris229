@@ -20,22 +20,28 @@ class Generator:
         )
 
         if is_en:
-            prompt = f"""You are Numeris229, an expert legal AI assistant on the Digital Code of the Republic of Benin (Law No. 2017-20).
+            prompt = f"""You are the intelligent legal assistant dedicated exclusively to the Digital Code of the Republic of Benin (Law No. 2017-20 as amended).
 
 Here are the official legal articles applicable:
 {contexte}
 
-Instruction: Based strictly on the legal articles above, answer the user's question in English clearly, accurately, and comprehensively. Cite the article number(s) explicitly.
+Strict Instructions:
+1. Answer the question based strictly and exclusively on the legal articles above.
+2. Cite the article number(s) explicitly.
+3. If the user's question does NOT relate to the Benin Digital Code, or if the provided articles do not contain the answer (e.g. questions about world geography, sports, recipes, general chat, or foreign politics), you MUST reply ONLY with: "HORS_PERIMETRE".
 
 Question: {question}
 Legal answer in English:"""
         else:
-            prompt = f"""Tu es l'assistant juridique Numeris229, expert du Code du Numérique de la République du Bénin (Loi N° 2017-20).
+            prompt = f"""Tu es l'assistant conversationnel intelligent expert du Code du Numérique de la République du Bénin (Loi N° 2017-20 modifiée).
 
 Voici les extraits officiels applicables :
 {contexte}
 
-Consigne : En te basant sur ces articles, réponds à la question suivante en français de manière claire, complète et précise. Cite expressément le ou les numéros d'articles utilisés.
+Consignes strictes :
+1. Réponds à la question en te basant rigoureusement et exclusivement sur ces extraits juridiques officiels.
+2. Cite expressément le ou les numéros d'articles utilisés.
+3. Si la question de l'usager NE concerne PAS le Code du Numérique béninois, ou si les articles ci-dessus ne permettent absolument pas d'y répondre (par exemple pour des questions de géographie mondiale, cuisine, sport, divertissement ou politique étrangère), réponds STRICTEMENT et UNIQUEMENT : "HORS_PERIMETRE".
 
 Question : {question}
 Réponse juridique :"""
@@ -64,8 +70,15 @@ Réponse juridique :"""
         except Exception as e:
             print(f"[Avertissement] Ollama inaccessible ou délai dépassé : {e}")
 
-        # Secours direct : restitution intégrale et soignée de l'article officiel SANS troncature
+        # Secours direct : vérifier d'abord si le document est réellement pertinent
         doc_principal = documents[0]
+        score_reranker = doc_principal.get("score_reranker", 0.0)
+        score_dense = doc_principal.get("score_dense", 1.0)
+        
+        # Si le score de pertinence est insuffisant, on ne renvoie pas un article au hasard
+        if score_reranker < 0.0 and score_dense < 0.60:
+            return "HORS_PERIMETRE"
+
         num = doc_principal['meta']['numero_article']
         titre = doc_principal['meta'].get('titre_article', '').strip()
         texte_integral = doc_principal['texte'].strip()
