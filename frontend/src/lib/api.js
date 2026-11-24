@@ -2,7 +2,8 @@
  * Service API complet pour la communication avec le backend Numeris229 FastAPI.
  */
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+export const API_URL = RAW_API_URL.replace(/\/+$/, "");
 
 export const TOKEN_KEY = "numeris229_token";
 export const ROLE_KEY = "numeris229_user_role";
@@ -250,6 +251,24 @@ export async function poserQuestionConversation(idConv, texte, langue = "fr") {
     throw new Error(resultat.detail || resultat.erreur || "Erreur lors du traitement de la question");
   }
   return resultat; // { reponse: "...", sources: [...] }
+}
+
+// Traduire dynamiquement une réponse juridique (FR <-> EN)
+export async function traduireTexte(texte, cible = "en") {
+  try {
+    const reponse = await fetch(`${API_URL}/traduire`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ texte, cible }),
+    });
+    if (reponse.ok) {
+      const data = await reponse.json();
+      if (data.texte) return data.texte;
+    }
+  } catch (e) {
+    console.warn("Échec traduction backend :", e);
+  }
+  return null;
 }
 
 // Renommer une conversation

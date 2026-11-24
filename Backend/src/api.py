@@ -1,7 +1,7 @@
 import os
 import time
-os.environ["HF_HUB_OFFLINE"] = "1"
-os.environ["TRANSFORMERS_OFFLINE"] = "1"
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 
 from fastapi import FastAPI, Depends, Request
 from fastapi.responses import JSONResponse
@@ -9,6 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+# Charger database en premier pour initialiser les variables d'environnement (.env)
+from database import Base, engine, get_db, migrer_base, auto_seed_admin
 from pipeline import Pipeline
 from conversation import (
     creer_conversation,
@@ -18,7 +20,6 @@ from conversation import (
     supprimer_conversation,
     lister_conversations
 )
-from database import Base, engine, get_db, migrer_base, auto_seed_admin
 from auth_routes import router as auth_router, utilisateur_courant
 from admin_routes import router as admin_router
 from models import Utilisateur, Signalement, JournalRequete
@@ -56,11 +57,84 @@ class Reponse(BaseModel):
     sources: list[str]
 
 
+class TraductionDemande(BaseModel):
+    texte: str
+    cible: str = "en"
+
+
+def traduire_texte_secours(texte: str, cible: str = "en") -> str:
+    if cible != "en":
+        return texte
+    remplacements = [
+        ("Selon l'article", "According to Article"),
+        ("Selon les articles", "According to Articles"),
+        ("D'après l'article", "Under Article"),
+        ("du Code du Numérique", "of the Benin Digital Code"),
+        ("Code du Numérique", "Digital Code"),
+        ("est puni d'un emprisonnement de", "shall be punished by imprisonment of"),
+        ("est punie d'un emprisonnement de", "shall be punished by imprisonment of"),
+        ("à une amende de", "and a fine of"),
+        ("millions de francs CFA", "million CFA francs"),
+        ("francs CFA", "CFA francs"),
+        ("données à caractère personnel", "personal data"),
+        ("responsable du traitement", "data controller"),
+        ("autorité de protection", "data protection authority"),
+        ("cybercriminalité", "cybercrime"),
+        ("signature électronique", "electronic signature"),
+        ("commerce électronique", "electronic commerce"),
+        ("alinéa", "paragraph"),
+    ]
+    import re
+    res = texte
+    for fr, en in remplacements:
+        res = re.sub(re.escape(fr), en, res, flags=re.IGNORECASE)
+    return res
+
+
+@app.post("/traduire")
+def traduire_texte_endpoint(req: TraductionDemande):
+    texte = req.texte.strip()
+    if not texte:
+        return {"texte": ""}
+    
+    # 1. Essai de traduction via le modèle LLM Ollama
+    try:
+        import requests
+        prompt = (
+            f"You are a professional legal translator specialized in Beninese digital law.\n"
+            f"Translate the following legal text into fluent, natural English. Keep article references intact:\n\n"
+            f"{texte}\n\n"
+            f"English translation:"
+        ) if req.cible == "en" else (
+            f"Traduis ce texte juridique en français en conservant les références légales :\n\n"
+            f"{texte}\n\n"
+            f"Traduction française :"
+        )
+        url = os.getenv("OLLAMA_URL", "http://localhost:11434/api/generate")
+        modele = os.getenv("OLLAMA_MODEL", "gemma3:1b")
+        resp = requests.post(url, json={
+            "model": modele,
+            "prompt": prompt,
+            "stream": False,
+            "options": {"temperature": 0.1, "num_predict": 300}
+        }, timeout=(2, 10))
+        if resp.status_code == 200:
+            trad = resp.json().get("response", "").strip()
+            if trad and len(trad) > 5:
+                return {"texte": trad}
+    except Exception as e:
+        pass
+
+    # 2. Secours par lexique juridique
+    return {"texte": traduire_texte_secours(texte, req.cible)}
+
+
+@app.get("/")
 @app.get("/health")
 def health():
     return {
         "status": "ok",
-        "service": "Numeris229 API",
+        "service": "Assistant Conversationnel Intelligent API",
         "database": "PostgreSQL (Neon.tech)" if "postgres" in str(engine.url) else "SQLite local"
     }
 

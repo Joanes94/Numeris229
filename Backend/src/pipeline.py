@@ -1,14 +1,17 @@
 import os
-os.environ["HF_HUB_OFFLINE"] = "1"
-os.environ["TRANSFORMERS_OFFLINE"] = "1"
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 
 import re
 from retriever import Retriever
 from reranker import Reranker
 from generator import Generator
 
-# Détection souple d'un numéro d'article dans la question (ex: "article 55", "art. 125", "art 378")
-MOTIF_NUMERO_ARTICLE = re.compile(r"(?:article|art\.?)\s*(\d+)", re.IGNORECASE)
+# Détection souple d'un numéro d'article ou de loi (ex: "article 55", "art. 125", "art 378", "loi 435", "la loi 435", "loi n° 435")
+MOTIF_NUMERO_ARTICLE = re.compile(
+    r"(?:article|art\.?|loi|disposition|alin[ée]a)\s*(?:n[°o]\.?\s*)?(\d+)",
+    re.IGNORECASE
+)
 
 # Détection des salutations et formules de politesse pures
 MOTIF_SALUTATION = re.compile(
@@ -16,11 +19,20 @@ MOTIF_SALUTATION = re.compile(
     re.IGNORECASE
 )
 
+STOPWORDS_FR = {
+    "les", "des", "une", "pour", "dans", "avec", "sans", "sous", "vers", "chez",
+    "par", "sur", "est", "sont", "être", "avoir", "fait", "faire", "comme", "mais",
+    "donc", "tout", "tous", "toute", "toutes", "quel", "quelle", "quels", "quelles",
+    "quoi", "dont", "leur", "leurs", "cette", "plus", "moins", "aussi", "bien",
+    "peut", "peuvent", "doit", "doivent", "dire", "dit", "qui", "que", "ces", "cet"
+}
+
 PHRASES_NE_SAIT_PAS = [
     "ne sais pas",
     "ne sait pas",
-    "ne figure pas dans les articles",
+    "ne figure pas",
     "n'est pas dans les articles",
+    "n'est pas mentionné",
     "ne permettent pas de répondre",
     "cette information ne s'y trouve pas",
     "hors_perimetre",
@@ -28,6 +40,7 @@ PHRASES_NE_SAIT_PAS = [
     "hors périmètre",
     "hors de mon domaine",
     "ne concerne pas le code du numérique",
+    "ne relève pas du code",
     "not mentioned in the articles",
     "does not mention",
     "cannot answer based on",
@@ -93,23 +106,35 @@ class Pipeline:
         if len(mots) <= 6 and MOTIF_SALUTATION.search(question_propre):
             return {"reponse": message_salutation(is_en), "sources": []}
 
+        # Détection d'un numéro d'article ou de loi (ex: "article 435", "loi 435", "art 55", "que dit la loi 435", etc.)
         m = MOTIF_NUMERO_ARTICLE.search(question_propre)
+        num_trouve = None
+        if m:
+            num_trouve = m.group(1)
+        else:
+            # Recherche si la question contient un chiffre correspondant à un article du Code
+            nombres = re.findall(r"\b(\d+)\b", question_propre)
+            for n in nombres:
+                if n not in {"2017", "2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025"} and n in getattr(self.retriever, "chunks_par_numero", {}):
+                    num_trouve = n
+                    break
+
         documents = None
 
-        # Cas 1 : La question cible explicitement un numéro d'article
-        if m:
-            num = m.group(1)
-            docs_article = self.retriever.rechercher_par_numero(num)
+        # Cas 1 : La question cible un numéro d'article ou de disposition légale
+        if num_trouve:
+            docs_article = self.retriever.rechercher_par_numero(num_trouve)
             if docs_article:
-                mots_significatifs = [w for w in re.findall(r"\w+", question_propre.lower()) if len(w) > 3]
-                if len(mots_significatifs) > 2:
+                mots_significatifs = [w for w in re.findall(r"\w+", question_propre.lower()) if len(w) > 3 and w not in STOPWORDS_FR]
+                # Si la question contient une interrogation thématique spécifique autour de cet article
+                if len(mots_significatifs) > 3:
                     autres_docs = self.retriever.rechercher(question_propre, n=10)
-                    tous_candidats = docs_article + [d for d in autres_docs if str(d["meta"]["numero_article"]) != str(num)]
+                    tous_candidats = docs_article + [d for d in autres_docs if str(d["meta"]["numero_article"]) != str(num_trouve)]
                     documents = self.reranker.reclasser(question_propre, tous_candidats, top_k=3)
                 else:
                     documents = docs_article[:3]
             else:
-                msg_introuvable = f"Article {num} was not found in the Benin Digital Code." if is_en else f"L'article {num} n'a pas été trouvé dans les dispositions du Code du Numérique."
+                msg_introuvable = f"Article {num_trouve} was not found in the Benin Digital Code." if is_en else f"L'article {num_trouve} n'a pas été trouvé dans les dispositions du Code du Numérique."
                 return {
                     "reponse": msg_introuvable,
                     "sources": []
@@ -117,6 +142,19 @@ class Pipeline:
 
         # Cas 2 : Question thématique générale (sémantique / conceptuelle)
         if not documents:
+            # Règle anti-hors-périmètre 0 (Filtre lexical déterministe) :
+            # Vérifie les termes juridiques du corpus français uniquement pour les questions en français
+            if not is_en:
+                mots_contenu = [
+                    w for w in re.findall(r"\b[a-zà-ÿ]{3,}\b", question_propre.lower())
+                    if w not in STOPWORDS_FR and not w.isdigit()
+                ]
+                if mots_contenu and not any(w in getattr(self.retriever, "vocabulaire_corpus", set()) for w in mots_contenu):
+                    return {
+                        "reponse": message_hors_perimetre(is_en),
+                        "sources": []
+                    }
+
             candidats = self.retriever.rechercher(question_propre, n=15)
             if not candidats:
                 return {
@@ -129,8 +167,8 @@ class Pipeline:
             score_sparse = top_c.get("score_sparse", 0.0)
 
             # Règle anti-hors-périmètre 1 :
-            # Si aucun mot-clé du corpus n'est présent (score_sparse = 0) ET similarité dense très basse
-            if score_sparse == 0.0 and score_dense < 0.62:
+            # Si très faible concordance lexicale et similarité sémantique très basse
+            if not is_en and score_sparse < 0.01 and score_dense < 0.55:
                 return {
                     "reponse": message_hors_perimetre(is_en),
                     "sources": []
@@ -139,9 +177,9 @@ class Pipeline:
             documents = self.reranker.reclasser(question_propre, candidats, top_k=3)
 
             # Règle anti-hors-périmètre 2 :
-            # Vérification de sécurité du score de pertinence du reranker
+            # Vérification de sécurité du score de pertinence du reranker (Cross-Encoder)
             score_top = documents[0].get("score_reranker", 0.0)
-            if score_top < -1.5 or (score_top < 0.0 and score_dense < 0.58):
+            if score_top < -0.6 or (score_top < 0.0 and score_dense < 0.58 and not is_en):
                 return {
                     "reponse": message_hors_perimetre(is_en),
                     "sources": []
@@ -153,8 +191,8 @@ class Pipeline:
         except Exception as e:
             print(f"[Erreur Générateur] : {e}")
             doc_secours = documents[0]
-            score_top = doc_secours.get("score_reranker", 0.0)
-            if score_top < 0.0:
+            score_top = doc_secours.get("score_reranker", 1.0)
+            if "score_reranker" in doc_secours and score_top < 0.2 and doc_secours.get("score_dense", 0.0) < 0.60:
                 return {"reponse": message_hors_perimetre(is_en), "sources": []}
 
             num = doc_secours['meta']['numero_article']

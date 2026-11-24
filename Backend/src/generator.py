@@ -1,9 +1,11 @@
+import os
 import requests
 
 class Generator:
-    def __init__(self, modele="gemma3:1b"):
-        self.modele = modele
-        self.url = "http://localhost:11434/api/generate"
+    def __init__(self, modele=None):
+        self.modele = modele or os.getenv("OLLAMA_MODEL", "gemma3:1b")
+        self.url = os.getenv("OLLAMA_URL", "http://localhost:11434/api/generate")
+        self.timeout = int(os.getenv("OLLAMA_TIMEOUT", "45"))
 
     def generer(self, question: str, documents: list, langue: str = "fr") -> str:
         is_en = (langue == "en") or ("in english" in question.lower()) or ("english" in question.lower())
@@ -20,18 +22,19 @@ class Generator:
         )
 
         if is_en:
-            prompt = f"""You are the intelligent legal assistant dedicated exclusively to the Digital Code of the Republic of Benin (Law No. 2017-20 as amended).
+            prompt = f"""You are the official legal assistant dedicated exclusively to the Digital Code of the Republic of Benin (Law No. 2017-20 as amended).
 
-Here are the official legal articles applicable:
+The official legal articles below are provided in French (the official legal language of the Republic of Benin):
 {contexte}
 
 Strict Instructions:
-1. Answer the question based strictly and exclusively on the legal articles above.
-2. Cite the article number(s) explicitly.
-3. If the user's question does NOT relate to the Benin Digital Code, or if the provided articles do not contain the answer (e.g. questions about world geography, sports, recipes, general chat, or foreign politics), you MUST reply ONLY with: "HORS_PERIMETRE".
+1. You MUST formulate the ENTIRE answer in English. Do NOT output raw French paragraphs.
+2. Translate, explain, and summarize the relevant legal provisions, obligations, and penalties into fluent, natural English.
+3. Explicitly cite the article number(s) (e.g. "According to Article {docs_contexte[0]['meta']['numero_article']} of the Benin Digital Code...").
+4. If the user's question does NOT relate to the Benin Digital Code, or if the provided articles do not contain the answer, you MUST reply ONLY with: "HORS_PERIMETRE".
 
 Question: {question}
-Legal answer in English:"""
+Official legal answer in English:"""
         else:
             prompt = f"""Tu es l'assistant conversationnel intelligent expert du Code du Numérique de la République du Bénin (Loi N° 2017-20 modifiée).
 
@@ -60,23 +63,25 @@ Réponse juridique :"""
                         "num_ctx": 1536,
                     }
                 },
-                timeout=120
+                timeout=(5, self.timeout)
             )
 
             if reponse.status_code == 200:
                 texte_rep = reponse.json().get("response", "").strip()
                 if texte_rep:
                     return texte_rep
+            else:
+                print(f"[Avertissement] Ollama a répondu avec le statut HTTP {reponse.status_code} : {reponse.text}")
         except Exception as e:
             print(f"[Avertissement] Ollama inaccessible ou délai dépassé : {e}")
 
         # Secours direct : vérifier d'abord si le document est réellement pertinent
         doc_principal = documents[0]
-        score_reranker = doc_principal.get("score_reranker", 0.0)
+        score_reranker = doc_principal.get("score_reranker", 1.0)
         score_dense = doc_principal.get("score_dense", 1.0)
         
-        # Si le score de pertinence est insuffisant, on ne renvoie pas un article au hasard
-        if score_reranker < 0.0 and score_dense < 0.60:
+        # Si le score de pertinence est insuffisant (recherche thématique ayant échoué), on ne renvoie pas un article au hasard
+        if "score_reranker" in doc_principal and score_reranker < 0.2 and score_dense < 0.60:
             return "HORS_PERIMETRE"
 
         num = doc_principal['meta']['numero_article']

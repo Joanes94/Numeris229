@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import articlesPretsBundled from "../../../../public/data/articles_prets.json";
 
 export const dynamic = "force-dynamic";
 
@@ -10,11 +11,16 @@ let articlesCache = null;
 function chargerArticles() {
   if (articlesCache) return articlesCache;
 
-  // Chemins de recherche vers articles_prets.json
+  if (Array.isArray(articlesPretsBundled) && articlesPretsBundled.length > 0) {
+    articlesCache = articlesPretsBundled;
+    return articlesCache;
+  }
+
+  // Chemins de recherche de secours vers articles_prets.json
   const chemins = [
     path.join(process.cwd(), "public", "data", "articles_prets.json"),
-    path.join(process.cwd(), "..", "backend", "data", "articles_prets.json"),
-    path.join(process.cwd(), "backend", "data", "articles_prets.json"),
+    path.join(process.cwd(), "..", "Backend", "data", "articles_prets.json"),
+    path.join(process.cwd(), "Backend", "data", "articles_prets.json"),
     path.join(process.cwd(), "data", "articles_prets.json"),
   ];
 

@@ -32,8 +32,18 @@ class Retriever:
                                 "chapitre": c.get("chapitre") or "",
                                 "modifie_par": c.get("modifie_par") or "",
                             },
-                            "distance": 0.0
+                            "distance": 0.0,
+                            "score_reranker": 2.0,
+                            "score_dense": 1.0,
+                            "score_sparse": 1.0,
                         })
+
+        # Vocabulaire complet du corpus (mots significatifs) pour filtrage hors-périmètre immédiat
+        self.vocabulaire_corpus = set()
+        for c in self.chunks:
+            texte_brut = f"{c.get('titre_article', '')} {c.get('texte_affichage', '')}".lower()
+            for mot in re.findall(r"\b[a-zà-ÿ]{3,}\b", texte_brut):
+                self.vocabulaire_corpus.add(mot)
 
         # 2. Modèle d'embeddings Solon (Dense)
         self.modele = SentenceTransformer("OrdalieTech/Solon-embeddings-base-0.1", device="cpu")

@@ -3,6 +3,17 @@ import json
 from sqlalchemy.orm import Session
 from models import Conversation, Message
 
+def deserialiser_sources(sources_brutes):
+    if not sources_brutes:
+        return []
+    if isinstance(sources_brutes, list):
+        return sources_brutes
+    try:
+        data = json.loads(sources_brutes)
+        return data if isinstance(data, list) else [str(data)]
+    except Exception:
+        return [str(sources_brutes)]
+
 def creer_conversation(db: Session, utilisateur_id: int, titre: str = "Nouvelle conversation") -> str:
     id_conv = str(uuid.uuid4())
     conv = Conversation(id=id_conv, utilisateur_id=utilisateur_id, titre=titre)
@@ -80,7 +91,7 @@ def obtenir_conversation(db: Session, id_conv: str, utilisateur_id: int):
             {
                 "question": m.question,
                 "reponse": m.reponse,
-                "sources": json.loads(m.sources),
+                "sources": deserialiser_sources(m.sources),
                 "horodatage": m.horodatage.isoformat() if m.horodatage else None
             } for m in conv.messages
         ]

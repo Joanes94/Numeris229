@@ -1,9 +1,9 @@
+import os
 import bcrypt
 from jose import jwt
 from datetime import datetime, timedelta
 
-#CLE_SECRETE = "change-moi-en-vrai-secret-aleatoire-long"
-CLE_SECRETE = "a2yhU7jdua90keBTGFARLm7643bgGBQstg42"
+CLE_SECRETE = os.getenv("SECRET_KEY", "a2yhU7jdua90keBTGFARLm7643bgGBQstg42")
 ALGORITHME = "HS256"
 DUREE_SESSION_JOURS = 7
 

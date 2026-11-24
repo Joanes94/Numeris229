@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Volume2, VolumeX, Pause, Play, Square } from "lucide-react";
 import { useLanguage } from "./LanguageContext";
 
@@ -78,6 +78,158 @@ export default function AudioLecteur({
   const [voixDisponibles, setVoixDisponibles] = useState([]);
   const intervalResumeRef = useRef(null);
 
+  /**
+   * Arrête immédiatement la synthèse vocale et réinitialise l'état.
+   */
+  const arreterLecture = useCallback(() => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch (e) {
+        console.warn("Erreur arrêt synthèse vocale :", e);
+      }
+      setEtat("idle");
+      if (intervalResumeRef.current) {
+        clearInterval(intervalResumeRef.current);
+        intervalResumeRef.current = null;
+      }
+    }
+  }, []);
+
+  /**
+   * Sélectionne une voix authentique avec l'accent adéquat (US/UK ou FR).
+   */
+  const determinerLangueEtVoix = useCallback((texteNettoye) => {
+    const liste = (typeof window !== "undefined" && window.speechSynthesis)
+      ? window.speechSynthesis.getVoices()
+      : voixDisponibles;
+
+    const texteMin = texteNettoye.toLowerCase();
+    const indicesEn = [
+      "according", "law", "digital", "article", "the", "and", "shall", "code", "under",
+      "punished", "fine", "rights", "republic of benin", "penalty", "data", "protection",
+      "imprisonment", "offense", "cybercrime", "information"
+    ];
+    const indicesFr = [
+      "selon", "loi", "numérique", "article", "les", "des", "dans", "pour", "est puni",
+      "données", "république du bénin", "peine", "amende", "emprisonnement", "alinéa",
+      "béninois", "disposition", "protection", "infraction"
+    ];
+
+    let scoreEn = 0;
+    let scoreFr = 0;
+    indicesEn.forEach(w => { if (texteMin.includes(w)) scoreEn++; });
+    indicesFr.forEach(w => { if (texteMin.includes(w)) scoreFr++; });
+
+    // Le Code du Numérique étant authentiquement en français,
+    // on priorise toujours une lecture vocale française naturelle (fr-FR)
+    // sans jamais imposer un accent anglais sur des réponses françaises.
+    let estAnglais = (scoreEn > scoreFr && scoreFr === 0);
+
+    if (estAnglais) {
+      const preferenceNomsEn = [
+        "google us english", "google uk english female", "google uk english male",
+        "natural", "jenny", "guy", "aria", "david", "zira", "mark", "george", "susan", "hazel"
+      ];
+
+      const voixEn = liste.filter(v => v.lang && v.lang.toLowerCase().startsWith("en"));
+
+      for (const pref of preferenceNomsEn) {
+        const v = voixEn.find(item => item.name && item.name.toLowerCase().includes(pref));
+        if (v) return { codeLangue: v.lang || "en-US", voix: v, estAnglais: true };
+      }
+
+      const vUs = voixEn.find(item => item.lang.toLowerCase().includes("en-us") || item.lang.toLowerCase().includes("en_us"));
+      if (vUs) return { codeLangue: "en-US", voix: vUs, estAnglais: true };
+
+      const vGb = voixEn.find(item => item.lang.toLowerCase().includes("en-gb") || item.lang.toLowerCase().includes("en_gb"));
+      if (vGb) return { codeLangue: "en-GB", voix: vGb, estAnglais: true };
+
+      if (voixEn.length > 0) return { codeLangue: voixEn[0].lang, voix: voixEn[0], estAnglais: true };
+
+      return { codeLangue: "en-US", voix: null, estAnglais: true };
+    } else {
+      const preferenceNomsFr = [
+        "google français", "natural", "hortense", "paul", "denise", "henri", "julie", "celine"
+      ];
+
+      const voixFr = liste.filter(v => v.lang && v.lang.toLowerCase().startsWith("fr"));
+
+      for (const pref of preferenceNomsFr) {
+        const v = voixFr.find(item => item.name && item.name.toLowerCase().includes(pref));
+        if (v) return { codeLangue: v.lang || "fr-FR", voix: v, estAnglais: false };
+      }
+
+      if (voixFr.length > 0) return { codeLangue: voixFr[0].lang, voix: voixFr[0], estAnglais: false };
+
+      return { codeLangue: "fr-FR", voix: null, estAnglais: false };
+    }
+  }, [langue, voixDisponibles]);
+
+  const demarrerLecture = useCallback(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+
+    window.speechSynthesis.cancel();
+    if (intervalResumeRef.current) clearInterval(intervalResumeRef.current);
+
+    const { codeLangue, voix, estAnglais } = determinerLangueEtVoix(texte);
+    const texteNettoye = preparerTextePourAudio(texte, estAnglais);
+    if (!texteNettoye) return;
+
+    const utterance = new SpeechSynthesisUtterance(texteNettoye);
+    utterance.lang = codeLangue;
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+
+    if (voix) {
+      utterance.voice = voix;
+    }
+
+    utterance.onstart = () => {
+      setEtat("playing");
+      intervalResumeRef.current = setInterval(() => {
+        if (typeof window !== "undefined" && window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+        }
+      }, 5000);
+    };
+
+    utterance.onend = () => {
+      setEtat("idle");
+      if (intervalResumeRef.current) clearInterval(intervalResumeRef.current);
+    };
+
+    utterance.onerror = (e) => {
+      if (e.error !== "canceled" && e.error !== "interrupted") {
+        console.warn("Synthèse vocale:", e);
+      }
+      setEtat("idle");
+      if (intervalResumeRef.current) clearInterval(intervalResumeRef.current);
+    };
+
+    setTimeout(() => {
+      window.speechSynthesis.speak(utterance);
+      setEtat("playing");
+    }, 60);
+  }, [langue, texte, determinerLangueEtVoix]);
+
+  const mettreEnPause = useCallback(() => {
+    if (typeof window !== "undefined" && window.speechSynthesis && etat === "playing") {
+      window.speechSynthesis.pause();
+      setEtat("paused");
+      if (intervalResumeRef.current) clearInterval(intervalResumeRef.current);
+    }
+  }, [etat]);
+
+  const reprendreLecture = useCallback(() => {
+    if (typeof window !== "undefined" && window.speechSynthesis && etat === "paused") {
+      window.speechSynthesis.resume();
+      setEtat("playing");
+    } else {
+      demarrerLecture();
+    }
+  }, [etat, demarrerLecture]);
+
   useEffect(() => {
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       setSupporte(true);
@@ -100,161 +252,18 @@ export default function AudioLecteur({
     return () => {
       arreterLecture();
     };
-  }, []);
+  }, [arreterLecture]);
 
   // Arrêter l'audio si le texte ou la langue change
   useEffect(() => {
     if (etat !== "idle") {
       arreterLecture();
     }
-  }, [texte, langue]);
+  }, [texte, langue, etat, arreterLecture]);
 
   if (!supporte || !texte) {
     return null;
   }
-
-  /**
-   * Sélectionne une voix authentique avec l'accent adéquat (US/UK ou FR).
-   */
-  const determinerLangueEtVoix = (texteNettoye) => {
-    const liste = (typeof window !== "undefined" && window.speechSynthesis)
-      ? window.speechSynthesis.getVoices()
-      : voixDisponibles;
-
-    // Détection de la langue du texte
-    const texteMin = texteNettoye.toLowerCase();
-    const indicesEn = ["according", "law", "digital", "article", "the", "and", "shall", "code", "under", "punished", "fine", "rights", "republic of benin"];
-    const indicesFr = ["selon", "loi", "numérique", "article", "les", "des", "dans", "pour", "est puni", "données", "république du bénin"];
-
-    let scoreEn = 0;
-    let scoreFr = 0;
-    indicesEn.forEach(w => { if (texteMin.includes(w)) scoreEn++; });
-    indicesFr.forEach(w => { if (texteMin.includes(w)) scoreFr++; });
-
-    // Priorité à la langue sélectionnée dans l'interface, ou au texte
-    const estAnglais = (langue === "en" || scoreEn > scoreFr);
-
-    if (estAnglais) {
-      // 1. Recherche d'une voix anglaise avec accent natif (US / UK / International)
-      const preferenceNomsEn = [
-        "google us english", "google uk english female", "google uk english male",
-        "natural", "jenny", "guy", "aria", "david", "zira", "mark", "george", "susan", "hazel"
-      ];
-
-      const voixEn = liste.filter(v => v.lang && v.lang.toLowerCase().startsWith("en"));
-
-      // Recherche par préférence de timbre
-      for (const pref of preferenceNomsEn) {
-        const v = voixEn.find(item => item.name && item.name.toLowerCase().includes(pref));
-        if (v) return { codeLangue: v.lang || "en-US", voix: v, estAnglais: true };
-      }
-
-      // Voix en-US
-      const vUs = voixEn.find(item => item.lang.toLowerCase().includes("en-us") || item.lang.toLowerCase().includes("en_us"));
-      if (vUs) return { codeLangue: "en-US", voix: vUs, estAnglais: true };
-
-      // Voix en-GB
-      const vGb = voixEn.find(item => item.lang.toLowerCase().includes("en-gb") || item.lang.toLowerCase().includes("en_gb"));
-      if (vGb) return { codeLangue: "en-GB", voix: vGb, estAnglais: true };
-
-      // Toute autre voix anglaise
-      if (voixEn.length > 0) return { codeLangue: voixEn[0].lang, voix: voixEn[0], estAnglais: true };
-
-      return { codeLangue: "en-US", voix: null, estAnglais: true };
-    } else {
-      // 2. Recherche d'une voix française
-      const preferenceNomsFr = [
-        "google français", "natural", "hortense", "paul", "denise", "henri", "julie", "celine"
-      ];
-
-      const voixFr = liste.filter(v => v.lang && v.lang.toLowerCase().startsWith("fr"));
-
-      for (const pref of preferenceNomsFr) {
-        const v = voixFr.find(item => item.name && item.name.toLowerCase().includes(pref));
-        if (v) return { codeLangue: v.lang || "fr-FR", voix: v, estAnglais: false };
-      }
-
-      if (voixFr.length > 0) return { codeLangue: voixFr[0].lang, voix: voixFr[0], estAnglais: false };
-
-      return { codeLangue: "fr-FR", voix: null, estAnglais: false };
-    }
-  };
-
-  const demarrerLecture = () => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-
-    window.speechSynthesis.cancel();
-    if (intervalResumeRef.current) clearInterval(intervalResumeRef.current);
-
-    const estCibleAnglais = (langue === "en");
-    const texteNettoye = preparerTextePourAudio(texte, estCibleAnglais);
-    if (!texteNettoye) return;
-
-    const utterance = new SpeechSynthesisUtterance(texteNettoye);
-
-    const { codeLangue, voix } = determinerLangueEtVoix(texteNettoye);
-    utterance.lang = codeLangue;
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
-
-    if (voix) {
-      utterance.voice = voix;
-    }
-
-    utterance.onstart = () => {
-      setEtat("playing");
-      // Contournement du bug de pause intempestive de Chromium sur Windows
-      intervalResumeRef.current = setInterval(() => {
-        if (typeof window !== "undefined" && window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
-          window.speechSynthesis.resume();
-        }
-      }, 5000);
-    };
-
-    utterance.onend = () => {
-      setEtat("idle");
-      if (intervalResumeRef.current) clearInterval(intervalResumeRef.current);
-    };
-
-    utterance.onerror = (e) => {
-      if (e.error !== "canceled" && e.error !== "interrupted") {
-        console.warn("Synthèse vocale:", e);
-      }
-      setEtat("idle");
-      if (intervalResumeRef.current) clearInterval(intervalResumeRef.current);
-    };
-
-    // Délai de sécurité avant speak pour purger le canal audio sur Windows
-    setTimeout(() => {
-      window.speechSynthesis.speak(utterance);
-      setEtat("playing");
-    }, 60);
-  };
-
-  const mettreEnPause = () => {
-    if (typeof window !== "undefined" && window.speechSynthesis && etat === "playing") {
-      window.speechSynthesis.pause();
-      setEtat("paused");
-      if (intervalResumeRef.current) clearInterval(intervalResumeRef.current);
-    }
-  };
-
-  const reprendreLecture = () => {
-    if (typeof window !== "undefined" && window.speechSynthesis && etat === "paused") {
-      window.speechSynthesis.resume();
-      setEtat("playing");
-    } else {
-      demarrerLecture();
-    }
-  };
-
-  const arreterLecture = () => {
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-      setEtat("idle");
-      if (intervalResumeRef.current) clearInterval(intervalResumeRef.current);
-    }
-  };
 
   // État 1 : Inactif (bouton pour lancer l'écoute)
   if (etat === "idle") {
